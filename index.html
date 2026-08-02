@@ -57,6 +57,7 @@ body {
 #s-land.active,
 #s-e-palette.active,
 #s-e-style.active,
+#s-cart.active,
 #s-mystery.active { min-height: 100dvh; }
 #s-cust.active { height: 100dvh; overflow: hidden; }
 /* Landing: exactly 4 cards must always fit — fixed height, never scrolls */
@@ -1381,6 +1382,70 @@ body {
   }
 }
 
+/* ══════════════════════════════════════════════
+   CART SCREEN
+   ══════════════════════════════════════════════ */
+/* Cart cards reuse .card-grid-3 / .flow-card so they match the landing + picker
+   cards (3-up desktop, 1-up mobile, fixed 280px height). */
+.cart-card-visual { padding-top: 18px; }
+.cart-remove {
+  position: absolute; top: 8px; right: 8px; z-index: 5;
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.92); border: 1.5px solid rgba(0,0,0,0.15);
+  color: var(--ink); cursor: pointer; font-size: 0.78rem; line-height: 1;
+  box-shadow: var(--sh); touch-action: manipulation;
+  transition: background var(--t), transform 0.1s, border-color var(--t);
+}
+.cart-remove:active { transform: scale(0.9); }
+@media (hover:hover) { .cart-remove:hover { background: #fff; border-color: var(--ink); } }
+
+/* Empty-slot "Add another pair" card — dashed placeholder */
+.cart-add-card {
+  background: transparent;
+  border: 2px dashed rgba(0,0,0,0.25);
+  align-items: center; justify-content: center;
+}
+@media (hover:hover) { .cart-add-card:hover { border-color: var(--ink); box-shadow: none; } }
+.cart-add-inner { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.cart-add-plus {
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 300;
+  font-size: 3rem; line-height: 1; color: var(--mid);
+}
+.cart-add-text {
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 600;
+  font-size: 0.72rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mid);
+}
+
+/* Empty cart state — spans the full grid width */
+.cart-empty {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px; padding: 60px 20px; text-align: center;
+}
+.cart-empty-title {
+  font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 800;
+  font-size: clamp(1rem, 3vw, 1.4rem); letter-spacing: 0.02em; text-transform: uppercase;
+  color: var(--ink);
+}
+
+/* Bottom action bar — pinned to the bottom of the screen (sibling of the
+   scrolling card body). Stacked on mobile, side-by-side on desktop:
+   "Add to cart and browse apparel" left, "Continue to checkout →" right. */
+.cart-actions {
+  display: flex; flex-direction: column; gap: 8px;
+  flex-shrink: 0;
+  padding: 10px 12px;
+  padding-bottom: calc(10px + var(--safe-b));
+  border-top: 1.5px solid rgba(0,0,0,0.07);
+  background: var(--bg);
+}
+.cart-actions .btn { min-height: 48px; }
+@media (min-width: 600px) {
+  .cart-actions { flex-direction: row; }
+  .cart-actions .btn { flex: 1; }
+}
+
 </style>
 </head>
 <body>
@@ -1609,6 +1674,24 @@ body {
         <button class="btn accent order" onclick="doOrder()">Order Now →</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════
+     CART
+     ═══════════════════════════ -->
+<div id="s-cart" class="screen">
+  <nav class="nav">
+    <button class="btn sm ghost" onclick="goBack()">← Back</button>
+    <svg class="logo-svg" onclick="goTo('land')" role="img" aria-label="twIIgs"><use href="#logo-sym"/></svg>
+  </nav>
+  <div class="card-screen-body fade-in">
+    <div class="card-screen-hed">Your Poles</div>
+    <div class="card-grid-3" id="cart-grid"></div>
+  </div>
+  <div class="cart-actions" id="cart-actions">
+    <button class="btn ghost cart-browse" onclick="cartAddAndBrowse(this)">Add to cart and browse apparel</button>
+    <button class="btn accent cart-checkout" onclick="cartCheckout(this)">Continue to checkout →</button>
   </div>
 </div>
 
@@ -2329,6 +2412,7 @@ function goTo(id, record=true) {
   if (id==='e-style')   initChooseStyle();
   if (id==='custom-palette') initCustomPalette();
   if (id==='cust')      initCustomiser();
+  if (id==='cart')      renderCart();
 }
 
 /* Back button — pop the last visited screen and return to it (falling back to
@@ -2639,6 +2723,9 @@ function startScratch() {
   window._learnq = window._learnq || [];
   window._learnq.push(['track', 'Entry Path Chosen', { path: 'scratch' }]);
   resetState();
+  // Clear the entry-flow context too so a scratch design encodes no stale
+  // palette/style in its share URL (item 8).
+  E.palette = null; E.pattern = null; E.customPalette = null;
   S.constrainedPalette = null;
   S.patternLoaded = null;
   S.unlocked = true;
@@ -3557,7 +3644,27 @@ function fireAffordance() {
    SHARE / SAVE / ORDER
    ══════════════════════════════════════════════════ */
 function encode() {
-  return LZString.compressToEncodedURIComponent(JSON.stringify({v:3,mode:'scratch',p1:S.p1,p2:S.p2,big:[...S.big]}));
+  return LZString.compressToEncodedURIComponent(JSON.stringify({
+    v:3, mode:'scratch',
+    p1:S.p1, p2:S.p2, big:[...S.big],
+    // Item 8: carry the palette / style context so a shared link restores the
+    // user's full editing state (palette constraint, slot mode) — not just colors.
+    pal:  E.palette,             // palette index or null
+    pat:  E.pattern,             // pattern index or null
+    slot: S.slotMode,            // boolean
+    cp:   S.constrainedPalette   // constrained palette index or null
+  }));
+}
+/* Decode a ?d= design payload out of a full share URL (used to recover ledge
+   positions for cart previews). Returns the parsed object, or null. */
+function decodeDesignURL(url) {
+  try {
+    const q = (url.split('?')[1] || '');
+    const raw = new URLSearchParams(q).get('d');
+    if (!raw) return null;
+    const dec = LZString.decompressFromEncodedURIComponent(raw);
+    return dec ? JSON.parse(dec) : JSON.parse(atob(raw));
+  } catch(e) { return null; }
 }
 function shareURL() {
   try {
@@ -3609,13 +3716,173 @@ async function doShare() {
     design_url: shareURL()
   }]);
 }
+/* ══════════════════════════════════════════════════
+   CART — session-persistent, in-tool cart of pole pairs
+   ══════════════════════════════════════════════════ */
+const CART_KEY = 'twiigs_cart';
+const CART_MAX = 6;
+const SHOPIFY_VARIANT_ID = 53838800650424;
+
+function getCart() {
+  try { return JSON.parse(sessionStorage.getItem(CART_KEY)) || []; }
+  catch(e) { return []; }
+}
+function setCart(arr) {
+  try { sessionStorage.setItem(CART_KEY, JSON.stringify(arr)); } catch(e){}
+}
+/* Snapshot the current design and push it onto the cart. Returns false at max. */
+function addCurrentToCart() {
+  const cart = getCart();
+  if (cart.length >= CART_MAX) return false;
+  cart.push({
+    designUrl: shareURL(),
+    p1Colors:  S.p1.slice(),
+    p2Colors:  S.p2.slice(),
+    timestamp: Date.now()
+  });
+  setCart(cart);
+  return true;
+}
+function removeCartItem(i) {
+  const cart = getCart();
+  cart.splice(i, 1);
+  setCart(cart);
+  renderCart();
+}
+
+/* Order Now — capture the current design, add it to the cart, open the cart. */
 function doOrder() {
-  const designUrl = shareURL();
-  const url = 'https://shop.twiigs.co/cart/53838800650424:1?' +
-    new URLSearchParams({
-      'attributes[Design URL]': designUrl
-    }).toString();
-  window.open(url, '_blank');
+  if (!addCurrentToCart()) showToast('Cart is full (6 pairs max)');
+  window._learnq = window._learnq || [];
+  window._learnq.push(['track', 'Added To Cart', { design_url: shareURL() }]);
+  goTo('cart');
+}
+
+/* Add every cart pair to the Shopify AJAX cart in one request. */
+async function addToShopifyCart(pairs) {
+  const items = pairs.map((pair, i) => ({
+    id: SHOPIFY_VARIANT_ID,
+    quantity: 1,
+    properties: {
+      'Design URL': pair.designUrl,
+      'Pair': i + 1
+    }
+  }));
+
+  const response = await fetch(
+    'https://shop.twiigs.co/cart/add.js',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items })
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to add to cart');
+  }
+  return response.json();
+}
+
+/* Empty-slot "+" card: return to the landing page to start a fresh design.
+   The existing pairs stay in sessionStorage so re-opening the cart shows them. */
+function cartAddAnother() { goTo('land'); }
+
+/* Button 2: send all pairs to Shopify, then redirect this tab to the cart. */
+async function cartCheckout(btn) {
+  const cart = getCart();
+  if (!cart.length) return;
+  const label = btn ? btn.textContent : '';
+  try {
+    if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+    await addToShopifyCart(cart);
+    sessionStorage.removeItem(CART_KEY);
+    window.location.href = 'https://shop.twiigs.co/cart';
+  } catch(e) {
+    showToast('Something went wrong — try again');
+    if (btn) { btn.disabled = false; btn.textContent = label; }
+  }
+}
+
+/* Button 3: send all pairs to Shopify, open the shop in a new tab, stay here. */
+async function cartAddAndBrowse(btn) {
+  const cart = getCart();
+  if (!cart.length) return;
+  try {
+    if (btn) btn.disabled = true;
+    await addToShopifyCart(cart);
+    sessionStorage.removeItem(CART_KEY);
+    window.open('https://shop.twiigs.co', '_blank');
+    showToast('Poles added to cart!');
+    renderCart();
+  } catch(e) {
+    showToast('Something went wrong — try again');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+/* Static (non-interactive) pole builder with an explicit ledge set — used for
+   cart-card previews where each pair carries its own ledge positions. */
+function buildStaticPoleHTML(hexArr, bigSet, D) {
+  let rings = '';
+  hexArr.forEach((hex, i) => {
+    const big   = bigSet.has(i);
+    const isCap = i === 0;
+    const w     = (big || isCap) ? D.bw : D.sw;
+    rings += buildRingSVG(big, isCap, w, D.h, hex, '', '');
+  });
+  return `<div class="pole-body"><div class="pole-rings" style="gap:${D.ringGap??2}px;">${rings}</div>
+    <div class="pole-shaft" style="width:${D.shw}px;height:${D.shh}px;"></div></div>`;
+}
+
+/* Render the cart card grid from sessionStorage. */
+function renderCart() {
+  const grid    = document.getElementById('cart-grid');
+  const actions = document.getElementById('cart-actions');
+  if (!grid) return;
+  const cart = getCart();
+
+  if (!cart.length) {
+    grid.innerHTML = `<div class="cart-empty">
+      <div class="cart-empty-title">No pairs added yet</div>
+      <button class="btn accent" onclick="goBack()">Design your poles</button>
+    </div>`;
+    if (actions) actions.style.display = 'none';
+    return;
+  }
+  if (actions) actions.style.display = '';
+
+  let html = '';
+  cart.forEach((item, i) => {
+    html += `<div class="flow-card cart-card">
+      <button class="cart-remove" onclick="removeCartItem(${i})" aria-label="Remove pair">✕</button>
+      <div class="flow-card-visual cart-card-visual" data-cart-idx="${i}"></div>
+    </div>`;
+  });
+  // Show a single dashed "Add another pair" slot while there's room.
+  if (cart.length < CART_MAX) {
+    html += `<div class="flow-card cart-add-card" onclick="cartAddAnother()">
+      <div class="cart-add-inner">
+        <div class="cart-add-plus">+</div>
+        <div class="cart-add-text">Add another pair</div>
+      </div>
+    </div>`;
+  }
+  grid.innerHTML = html;
+
+  // Size + draw each pair's mini preview to fit its card.
+  cart.forEach((item, i) => {
+    const el = grid.querySelector(`.cart-card-visual[data-cart-idx="${i}"]`);
+    if (!el) return;
+    const D = szForEl(el);
+    const d = decodeDesignURL(item.designUrl);
+    const bigSet = (d && d.big) ? new Set(d.big) : new Set(DEF_BIG);
+    el.innerHTML = `<div class="poles-wrap">
+      <div class="pole-col">${buildStaticPoleHTML(item.p1Colors, bigSet, D)}</div>
+      <div class="pole-col">${buildStaticPoleHTML(item.p2Colors, bigSet, D)}</div>
+    </div>`;
+  });
 }
 function doMysteryOrder() {
   const comment = document.getElementById('mystery-comment')?.value || '';
@@ -3768,13 +4035,29 @@ function checkURL() {
     S.p1  = d.p1||new Array(N).fill(BLACK);
     S.p2  = d.p2||new Array(N).fill(BLACK);
     S.big = d.big?new Set(d.big):new Set(DEF_BIG);
-    S.unlocked=true; S.constrainedPalette=null;
+    /* Item 8: restore the full editing context if the link carries it. Older
+       links omit these fields, so they fall back to the previous free-scratch
+       behaviour (no constraint, no slot mode). */
+    E.palette            = (d.pal ?? null);
+    E.pattern            = (d.pat ?? null);
+    S.constrainedPalette = (d.cp  ?? null);
+    S.patternLoaded      = E.pattern;
+    if (E.pattern !== null && PATTERNS[E.pattern]) {
+      // Rebuild each ring's pattern slot index so slot mode can group rings —
+      // this does NOT touch the restored colors.
+      S.slotP1  = PATTERNS[E.pattern].p1.slice();
+      S.slotP2  = PATTERNS[E.pattern].p2.slice();
+      S.slotMode = !!d.slot;
+    } else {
+      S.slotMode = false;
+    }
+    S.unlocked = S.constrainedPalette === null;
     window._learnq = window._learnq || [];
     window._learnq.push(['track', 'Customiser Opened', {
       entry_path: 'shared_link',
-      has_palette: false,
-      has_style: false,
-      style_name: null
+      has_palette: S.constrainedPalette !== null,
+      has_style: E.pattern !== null,
+      style_name: E.pattern !== null ? PATTERNS[E.pattern].name : null
     }]);
     goTo('cust');
   } catch(e){}
