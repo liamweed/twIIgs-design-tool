@@ -57,8 +57,9 @@ body {
 #s-land.active,
 #s-e-palette.active,
 #s-e-style.active,
-#s-cart.active,
 #s-mystery.active { min-height: 100dvh; }
+/* Cart page fills the viewport and never scrolls (like the landing page). */
+#s-cart.active { height: 100dvh; overflow: hidden; }
 #s-cust.active { height: 100dvh; overflow: hidden; }
 /* Landing: exactly 4 cards must always fit — fixed height, never scrolls */
 #s-land.active { height: 100dvh; overflow: hidden; }
@@ -131,6 +132,7 @@ body {
   flex-shrink: 0; z-index: 100;
 }
 .nav-right { display: flex; align-items: center; gap: 8px; }
+.nav-left  { display: flex; align-items: center; gap: 8px; }
 .nav-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 0.62rem; font-weight: 600;
@@ -1386,7 +1388,17 @@ body {
    CART SCREEN
    ══════════════════════════════════════════════ */
 /* Cart cards reuse .card-grid-3 / .flow-card so they match the landing + picker
-   cards (3-up desktop, 1-up mobile, fixed 280px height). */
+   cards (3-up desktop, 1-up mobile). The grid stretches to fill the space the
+   action bar leaves, and the cards stretch with it, so the page never scrolls. */
+#s-cart .card-screen-body { overflow: hidden; }
+#s-cart #cart-grid {
+  flex: 1; min-height: 0;
+  align-content: stretch;
+  grid-auto-rows: minmax(0, 1fr);
+}
+#s-cart #cart-grid .flow-card {
+  height: auto; align-self: stretch; min-height: 0;
+}
 .cart-card-visual { padding-top: 18px; }
 .cart-remove {
   position: absolute; top: 8px; right: 8px; z-index: 5;
@@ -1503,7 +1515,10 @@ body {
      ═══════════════════════════ -->
 <div id="s-land" class="screen active">
   <nav class="nav">
-    <a class="btn sm ghost" href="https://twiigs.co" target="_blank">Back to Home</a>
+    <div class="nav-left">
+      <a class="btn sm ghost" href="https://twiigs.co" target="_blank">Back to Home</a>
+      <button class="btn sm ghost your-poles-btn" onclick="goTo('cart')" style="display:none;">Your Poles</button>
+    </div>
     <svg class="logo-svg" onclick="goTo('land')" role="img" aria-label="twIIgs"><use href="#logo-sym"/></svg>
   </nav>
   <div class="card-screen-body fade-in">
@@ -1535,7 +1550,10 @@ body {
      ═══════════════════════════ -->
 <div id="s-e-palette" class="screen">
   <nav class="nav">
-    <button class="btn sm ghost" onclick="goBack()">← Back</button>
+    <div class="nav-left">
+      <button class="btn sm ghost" onclick="goBack()">← Back</button>
+      <button class="btn sm ghost your-poles-btn" onclick="goTo('cart')" style="display:none;">Your Poles</button>
+    </div>
     <svg class="logo-svg" onclick="goTo('land')" role="img" aria-label="twIIgs"><use href="#logo-sym"/></svg>
   </nav>
   <div class="card-screen-body fade-in">
@@ -1549,7 +1567,10 @@ body {
      ═══════════════════════════ -->
 <div id="s-e-style" class="screen">
   <nav class="nav">
-    <button class="btn sm ghost" onclick="goBack()">← Back</button>
+    <div class="nav-left">
+      <button class="btn sm ghost" onclick="goBack()">← Back</button>
+      <button class="btn sm ghost your-poles-btn" onclick="goTo('cart')" style="display:none;">Your Poles</button>
+    </div>
     <svg class="logo-svg" onclick="goTo('land')" role="img" aria-label="twIIgs"><use href="#logo-sym"/></svg>
   </nav>
   <div class="card-screen-body fade-in">
@@ -1563,7 +1584,10 @@ body {
      ═══════════════════════════ -->
 <div id="s-custom-palette" class="screen">
   <nav class="nav">
-    <button class="btn sm ghost" onclick="goBack()">← Back</button>
+    <div class="nav-left">
+      <button class="btn sm ghost" onclick="goBack()">← Back</button>
+      <button class="btn sm ghost your-poles-btn" onclick="goTo('cart')" style="display:none;">Your Poles</button>
+    </div>
     <svg class="logo-svg" onclick="goTo('land')" role="img" aria-label="twIIgs"><use href="#logo-sym"/></svg>
   </nav>
   <div class="cp-body fade-in">
@@ -1584,7 +1608,11 @@ body {
      ═══════════════════════════ -->
 <div id="s-cust" class="screen">
   <nav class="nav">
-    <button class="btn sm ghost" onclick="goBack()" style="padding:0 10px;">← Back</button>
+    <div class="nav-left">
+      <button class="btn sm ghost" onclick="goBack()" style="padding:0 10px;">← Back</button>
+      <!-- Shown only when the cart already holds a pair (see refreshYourPolesBtns) -->
+      <button class="btn sm ghost your-poles-btn" onclick="goTo('cart')" style="display:none;">Your Poles</button>
+    </div>
     <svg class="logo-svg" onclick="goTo('land')" role="img" aria-label="twIIgs"><use href="#logo-sym"/></svg>
   </nav>
   <div class="cust-body">
@@ -1671,7 +1699,7 @@ body {
       <div class="cust-action-bar">
         <button class="btn ghost share" onclick="doShare()">Share</button>
         <button class="btn ghost save" onclick="openSave()">Save</button>
-        <button class="btn accent order" onclick="doOrder()">Order Now →</button>
+        <button class="btn accent order" onclick="doOrder()">Add to basket →</button>
       </div>
     </div>
   </div>
@@ -1682,7 +1710,10 @@ body {
      ═══════════════════════════ -->
 <div id="s-cart" class="screen">
   <nav class="nav">
-    <button class="btn sm ghost" onclick="goBack()">← Back</button>
+    <div class="nav-left">
+      <button class="btn sm ghost" onclick="goBack()">← Back</button>
+      <button class="btn sm ghost your-poles-btn" onclick="goTo('cart')" style="display:none;">Your Poles</button>
+    </div>
     <svg class="logo-svg" onclick="goTo('land')" role="img" aria-label="twIIgs"><use href="#logo-sym"/></svg>
   </nav>
   <div class="card-screen-body fade-in">
@@ -1700,7 +1731,10 @@ body {
      ═══════════════════════════ -->
 <div id="s-mystery" class="screen">
   <nav class="nav">
-    <button class="btn sm ghost" onclick="goBack()">← Back</button>
+    <div class="nav-left">
+      <button class="btn sm ghost" onclick="goBack()">← Back</button>
+      <button class="btn sm ghost your-poles-btn" onclick="goTo('cart')" style="display:none;">Your Poles</button>
+    </div>
     <svg class="logo-svg" onclick="goTo('land')" role="img" aria-label="twIIgs"><use href="#logo-sym"/></svg>
   </nav>
   <div class="mystery-body">
@@ -2413,6 +2447,17 @@ function goTo(id, record=true) {
   if (id==='custom-palette') initCustomPalette();
   if (id==='cust')      initCustomiser();
   if (id==='cart')      renderCart();
+  refreshYourPolesBtns();
+}
+
+/* Show the "Your Poles" nav button on every screen when the cart holds at least
+   one pair — except the cart screen itself (you're already there). */
+function refreshYourPolesBtns() {
+  const onCart = document.getElementById('s-cart')?.classList.contains('active');
+  const show = getCart().length > 0 && !onCart;
+  document.querySelectorAll('.your-poles-btn').forEach(b => {
+    b.style.display = show ? '' : 'none';
+  });
 }
 
 /* Back button — pop the last visited screen and return to it (falling back to
@@ -4124,6 +4169,7 @@ window._learnq.push(['track', 'Tool Opened', {
 }]);
 initLanding();
 checkURL();
+refreshYourPolesBtns();  // reflect a pre-existing sessionStorage cart on first paint
 maybeShowMobileWarning();
 setPolesStageHeight();   // no-op unless the customiser is the active screen on load
 </script>
