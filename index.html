@@ -3,17 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-visual">
-<title>twIIgs — Confirm Your Design</title>
-<meta property="og:title" content="twIIgs Presale — Confirm Your Design">
-<meta property="og:description" content="Confirm your custom twIIgs pole design for your presale order.">
-<meta property="og:image" content="https://raw.githubusercontent.com/liamweed/twiigs-presale/main/preview.png">
-<meta property="og:url" content="https://presale.twiigs.co">
+<title>twIIgs — Design Your Custom Poles</title>
+<meta property="og:title" content="twIIgs Custom Ski Poles">
+<meta property="og:description" content="Design your own custom ski poles — choose colors, patterns, and ledge positions.">
+<meta property="og:image" content="https://raw.githubusercontent.com/liamweed/custom_poles2/main/preview.png">
+<meta property="og:url" content="https://design.twiigs.co">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<meta property="twitter:url" content="https://presale.twiigs.co">
+<meta property="twitter:url" content="https://design.twiigs.co">
 <meta name="twitter:title" content="twIIgs Custom Ski Poles">
 <meta name="twitter:description" content="Design your own custom ski poles">
-<meta name="twitter:image" content="https://raw.githubusercontent.com/liamweed/twiigs-presale/main/preview.png">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/liamweed/custom_poles2/main/preview.png">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <script async type="text/javascript" src="https://static.klaviyo.com/onsite/js/klaviyo.js?company_id=Yq7u24"></script>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -860,9 +860,6 @@ body {
 /* ══════════════════════════════════════════════
    SAVE OVERLAY
    ══════════════════════════════════════════════ */
-/* Presale form: invalid-field highlight */
-.ov-email-input.input-error { border-color: #ED0039; }
-
 .ov {
   display: none; position: fixed; inset: 0;
   background: rgba(0,0,0,0.42); z-index: 300;
@@ -1609,7 +1606,7 @@ body {
       <div class="cust-action-bar">
         <button class="btn ghost share" onclick="doShare()">Share</button>
         <button class="btn ghost save" onclick="openSave()">Save</button>
-        <button class="btn accent order" onclick="openPresaleForm('customiser')">LOCK IN MY DESIGN</button>
+        <button class="btn accent order" onclick="doOrder()">Order Now →</button>
       </div>
     </div>
   </div>
@@ -1669,40 +1666,6 @@ body {
     <div class="ov-confirm" id="ov-confirm">Design saved — check your email ✓</div>
     <div class="ov-spam">If you don't see it, check your spam folder.</div>
     <button class="btn ghost" style="width:100%;margin-top:14px;" onclick="closeOv()">Close</button>
-  </div>
-</div>
-
-<!-- ═══════════════════════════
-     PRESALE CONFIRMATION FORM
-     ═══════════════════════════ -->
-<div class="ov" id="ov-presale" onclick="if(event.target===this)closePresaleForm()">
-  <div class="ov-box" style="position:relative;">
-    <button class="save-popup-x" onclick="closePresaleForm()" aria-label="Close" style="top:14px;right:16px;">✕</button>
-    <div class="ov-handle"></div>
-    <div class="ov-poles"><div class="poles-wrap" id="ov-presale-poles"></div></div>
-    <div class="ov-lbl">First name</div>
-    <div class="ov-email-row">
-      <input class="ov-email-input" type="text" id="pf-first" placeholder="First name" autocomplete="given-name" required>
-    </div>
-    <div class="ov-lbl">Last name</div>
-    <div class="ov-email-row">
-      <input class="ov-email-input" type="text" id="pf-last" placeholder="Last name" autocomplete="family-name" required>
-    </div>
-    <div class="ov-lbl">Your email</div>
-    <div class="ov-email-row">
-      <input class="ov-email-input" type="email" id="pf-email" placeholder="your@email.com" autocomplete="email" required>
-    </div>
-    <button class="btn accent" style="width:100%;margin-top:14px;" onclick="submitPresale()">Lock In My Design</button>
-  </div>
-</div>
-
-<div class="save-popup" id="presale-popup" onclick="if(event.target===this)closePresalePopup()">
-  <div class="save-popup-box">
-    <button class="save-popup-x" onclick="closePresalePopup()" aria-label="Close">✕</button>
-    <div class="save-popup-check">✓</div>
-    <div class="save-popup-title">Design confirmed!</div>
-    <div class="save-popup-sub" id="presale-popup-sub">We've got your design. </div>
-    <button class="btn ghost" style="width:100%;margin-top:16px;" onclick="closePresalePopup()">Done</button>
   </div>
 </div>
 
@@ -3646,22 +3609,22 @@ async function doShare() {
     design_url: shareURL()
   }]);
 }
-function doOrder(track = true) {
-  if (track) {
-    window._learnq = window._learnq || [];
-    window._learnq.push(['track', 'Order Now Clicked', {
-      design_url: shareURL()
-    }]);
-  }
-  /* ── SHOPIFY CHECKOUT URL ──────────────────────────
-     Replace '#' below with your Shopify checkout URL.
-     ─────────────────────────────────────────────── */
-  window.open('#','_blank');
+function doOrder() {
+  const designUrl = shareURL();
+  const url = 'https://shop.twiigs.co/cart/53838800650424:1?' +
+    new URLSearchParams({
+      'attributes[Design URL]': designUrl
+    }).toString();
+  window.open(url, '_blank');
 }
 function doMysteryOrder() {
-  // Open the presale confirmation form in mystery mode instead of checkout.
-  // The comment is read from the mystery screen at submit time.
-  openPresaleForm('mystery');
+  const comment = document.getElementById('mystery-comment')?.value || '';
+  const url = 'https://shop.twiigs.co/cart/53838800650424:1?' +
+    new URLSearchParams({
+      'attributes[Design URL]': 'SURPRISE ME!',
+      'attributes[Special Requests]': comment
+    }).toString();
+  window.open(url, '_blank');
 }
 function openSave() {
   buildOvPoles();
@@ -3764,107 +3727,6 @@ async function submitSave() {
   showSavePopup();
 }
 function closeOv() { document.getElementById('ov-save').classList.remove('open'); }
-
-/* ══════════════════════════════════════════════════
-   PRESALE CONFIRMATION
-   ══════════════════════════════════════════════════ */
-let presaleMysteryFlow = false;
-function openPresaleForm(source = 'customiser') {
-  presaleMysteryFlow = (source === 'mystery');
-  buildPresalePoles();
-  // Mystery flow has no real design — hide the pole preview inside the overlay.
-  const polesBox = document.querySelector('#ov-presale .ov-poles');
-  if (polesBox) polesBox.style.display = presaleMysteryFlow ? 'none' : '';
-  ['pf-first','pf-last','pf-email'].forEach(id => {
-    const el = document.getElementById(id);
-    el.value = '';
-    el.classList.remove('input-error');
-  });
-  document.getElementById('ov-presale').classList.add('open');
-}
-function buildPresalePoles() {
-  const el = document.getElementById('ov-presale-poles'); if(!el) return;
-  const D = szForEl(el);
-  el.innerHTML=`<div class="pole-col">${buildPoleHTML(S.p1,D,'x',false)}</div>
-                <div class="pole-col">${buildPoleHTML(S.p2,D,'x',false)}</div>`;
-}
-function closePresaleForm() { document.getElementById('ov-presale').classList.remove('open'); }
-
-async function submitPresale() {
-  const firstEl = document.getElementById('pf-first');
-  const lastEl  = document.getElementById('pf-last');
-  const emailEl = document.getElementById('pf-email');
-  const firstName = firstEl.value.trim();
-  const lastName  = lastEl.value.trim();
-  const email     = emailEl.value.trim();
-
-  // Validate — highlight the first empty/invalid field and stop
-  [firstEl, lastEl, emailEl].forEach(el => el.classList.remove('input-error'));
-  let invalid = null;
-  if (!firstName) invalid = firstEl;
-  else if (!lastName) invalid = lastEl;
-  else if (!email || !email.includes('@')) invalid = emailEl;
-  if (invalid) { invalid.classList.add('input-error'); invalid.focus(); return; }
-
-  // Mystery flow has no real design URL — send a sentinel plus the comment.
-  const designUrl = presaleMysteryFlow ? 'SURPRISE ME!' : shareURL();
-
-  // a) Identify the profile
-  window._learnq = window._learnq || [];
-  window._learnq.push(['identify', {
-    '$email': email,
-    '$first_name': firstName,
-    '$last_name': lastName
-  }]);
-
-  // b) Track the event — every confirmation is logged separately
-  if (presaleMysteryFlow) {
-    const commentEl = document.getElementById('mystery-comment');
-    const mysteryComment = commentEl ? commentEl.value.trim() : '';
-    window._learnq.push(['track', 'Design Confirmed', {
-      email: email,
-      first_name: firstName,
-      last_name: lastName,
-      design_url: 'SURPRISE ME!',
-      comment: mysteryComment,
-      confirmed_at: new Date().toISOString()
-    }]);
-  } else {
-    window._learnq.push(['track', 'Design Confirmed', {
-      email: email,
-      first_name: firstName,
-      last_name: lastName,
-      design_url: designUrl,
-      confirmed_at: new Date().toISOString()
-    }]);
-  }
-
-  // c) Add to Presale Designs list
-  await klaviyoSubscribe(email, 'Wp3P6N', {
-    design_url: designUrl,
-    first_name: firstName,
-    last_name: lastName
-  });
-
-  // d) Also add to Design Saves list (same as index.html save behavior)
-  await klaviyoSubscribe(email, 'UkMqYU', { design_url: designUrl });
-
-  showPresalePopup(presaleMysteryFlow);
-}
-let presalePopupTimer = null;
-function showPresalePopup(mystery = false) {
-  closePresaleForm();   // never show the form and popup at the same time
-  document.getElementById('presale-popup-sub').textContent = mystery
-    ? "Got it. We will reach back out when your pole is ready this fall."
-    : "We've got your design! We will reach back out when your pole is ready this fall.";
-  document.getElementById('presale-popup').classList.add('open');
-  clearTimeout(presalePopupTimer);
-  presalePopupTimer = setTimeout(closePresalePopup, 15000);
-}
-function closePresalePopup() {
-  clearTimeout(presalePopupTimer);
-  document.getElementById('presale-popup').classList.remove('open');
-}
 
 let savePopupTimer = null;
 function showSavePopup() {
