@@ -3803,51 +3803,59 @@ function doOrder() {
   goTo('cart');
 }
 
-/* Build a Shopify cart permalink that adds all pairs at once via URL params.
-   Design URLs ride along as cart attributes (order-level "Additional details"
-   in Shopify admin) rather than line-item properties. */
-function buildShopifyCartUrl(pairs) {
-  let url = 'https://shop.twiigs.co/cart/';
+/* Add all cart pairs to Shopify via a hidden form POST to /cart/add.
+   A top-level form navigation isn't subject to CORS (unlike a fetch), so this
+   sidesteps the cross-origin failure. Each pair carries its own line-item
+   properties — the distinct "Design URL" keeps every pair as its own line item
+   instead of merging into one, and each URL shows on the line in Shopify admin.
+   `target` selects the tab: '_self' redirects here, '_blank' opens a new tab. */
+function submitShopifyCartForm(pairs, target) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = 'https://shop.twiigs.co/cart/add';
+  form.target = target;
+  form.style.display = 'none';
 
-  // Add each pair as a line item
-  const items = pairs.map(pair =>
-    `${SHOPIFY_VARIANT_ID}:1`
-  ).join(',');
-
-  url += items + '?';
-
-  // Add properties for each pair
-  const params = new URLSearchParams();
   pairs.forEach((pair, i) => {
-    params.append(
-      `attributes[Pair ${i+1} Design URL]`,
-      pair.designUrl
-    );
+    const fields = {
+      [`items[${i}][id]`]:                         SHOPIFY_VARIANT_ID,
+      [`items[${i}][quantity]`]:                   1,
+      [`items[${i}][properties][Pair]`]:           i + 1,
+      [`items[${i}][properties][Design URL]`]:     pair.designUrl
+    };
+    Object.entries(fields).forEach(([name, value]) => {
+      const input = document.createElement('input');
+      input.type  = 'hidden';
+      input.name  = name;
+      input.value = value;
+      form.appendChild(input);
+    });
   });
 
-  return url + params.toString();
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
 }
 
 /* Empty-slot "+" card: return to the landing page to start a fresh design.
    The existing pairs stay in sessionStorage so re-opening the cart shows them. */
 function cartAddAnother() { goTo('land'); }
 
-/* Button 2: build the Shopify cart URL and redirect this tab to it. */
+/* Button 2: add all pairs to Shopify, redirecting this tab to the cart. */
 function cartCheckout(btn) {
   const cart = getCart();
   if (!cart.length) return;
-  const shopifyUrl = buildShopifyCartUrl(cart);
   sessionStorage.removeItem(CART_KEY);
-  window.location.href = shopifyUrl;
+  submitShopifyCartForm(cart, '_self');
 }
 
-/* Button 3: open the Shopify cart URL in a new tab plus the shop, stay here. */
+/* Button 3: add all pairs to Shopify in a new tab, open the shop in another,
+   stay here. */
 function cartAddAndBrowse(btn) {
   const cart = getCart();
   if (!cart.length) return;
-  const shopifyUrl = buildShopifyCartUrl(cart);
   sessionStorage.removeItem(CART_KEY);
-  window.open(shopifyUrl, '_blank');
+  submitShopifyCartForm(cart, '_blank');
   window.open('https://shop.twiigs.co', '_blank');
   showToast('Poles added to cart!');
   renderCart();
