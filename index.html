@@ -3803,68 +3803,54 @@ function doOrder() {
   goTo('cart');
 }
 
-/* Add every cart pair to the Shopify AJAX cart in one request. */
-async function addToShopifyCart(pairs) {
-  const items = pairs.map((pair, i) => ({
-    id: SHOPIFY_VARIANT_ID,
-    quantity: 1,
-    properties: {
-      'Design URL': pair.designUrl,
-      'Pair': i + 1
-    }
-  }));
+/* Build a Shopify cart permalink that adds all pairs at once via URL params.
+   Design URLs ride along as cart attributes (order-level "Additional details"
+   in Shopify admin) rather than line-item properties. */
+function buildShopifyCartUrl(pairs) {
+  let url = 'https://shop.twiigs.co/cart/';
 
-  const response = await fetch(
-    'https://shop.twiigs.co/cart/add.js',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items })
-    }
-  );
+  // Add each pair as a line item
+  const items = pairs.map(pair =>
+    `${SHOPIFY_VARIANT_ID}:1`
+  ).join(',');
 
-  if (!response.ok) {
-    throw new Error('Failed to add to cart');
-  }
-  return response.json();
+  url += items + '?';
+
+  // Add properties for each pair
+  const params = new URLSearchParams();
+  pairs.forEach((pair, i) => {
+    params.append(
+      `attributes[Pair ${i+1} Design URL]`,
+      pair.designUrl
+    );
+  });
+
+  return url + params.toString();
 }
 
 /* Empty-slot "+" card: return to the landing page to start a fresh design.
    The existing pairs stay in sessionStorage so re-opening the cart shows them. */
 function cartAddAnother() { goTo('land'); }
 
-/* Button 2: send all pairs to Shopify, then redirect this tab to the cart. */
-async function cartCheckout(btn) {
+/* Button 2: build the Shopify cart URL and redirect this tab to it. */
+function cartCheckout(btn) {
   const cart = getCart();
   if (!cart.length) return;
-  const label = btn ? btn.textContent : '';
-  try {
-    if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
-    await addToShopifyCart(cart);
-    sessionStorage.removeItem(CART_KEY);
-    window.location.href = 'https://shop.twiigs.co/cart';
-  } catch(e) {
-    showToast('Something went wrong — try again');
-    if (btn) { btn.disabled = false; btn.textContent = label; }
-  }
+  const shopifyUrl = buildShopifyCartUrl(cart);
+  sessionStorage.removeItem(CART_KEY);
+  window.location.href = shopifyUrl;
 }
 
-/* Button 3: send all pairs to Shopify, open the shop in a new tab, stay here. */
-async function cartAddAndBrowse(btn) {
+/* Button 3: open the Shopify cart URL in a new tab plus the shop, stay here. */
+function cartAddAndBrowse(btn) {
   const cart = getCart();
   if (!cart.length) return;
-  try {
-    if (btn) btn.disabled = true;
-    await addToShopifyCart(cart);
-    sessionStorage.removeItem(CART_KEY);
-    window.open('https://shop.twiigs.co', '_blank');
-    showToast('Poles added to cart!');
-    renderCart();
-  } catch(e) {
-    showToast('Something went wrong — try again');
-  } finally {
-    if (btn) btn.disabled = false;
-  }
+  const shopifyUrl = buildShopifyCartUrl(cart);
+  sessionStorage.removeItem(CART_KEY);
+  window.open(shopifyUrl, '_blank');
+  window.open('https://shop.twiigs.co', '_blank');
+  showToast('Poles added to cart!');
+  renderCart();
 }
 
 /* Static (non-interactive) pole builder with an explicit ledge set — used for
