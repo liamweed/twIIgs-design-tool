@@ -408,6 +408,7 @@ body {
 }
 .poles-stage {
   flex: 0 0 44%;
+  position: relative;   /* anchor for the absolutely-placed background toggle */
   display: flex; align-items: center; justify-content: center;
   overflow: hidden; padding: 8px 12px;
   user-select: none;
@@ -808,9 +809,8 @@ body {
   background: var(--bg);
 }
 .cust-action-bar .btn { min-height: 44px; font-size: 0.76rem; padding: 0 10px; }
-.cust-action-bar .btn.share { flex: 1; }     /* smallest, left */
-.cust-action-bar .btn.save  { flex: 1.5; }   /* medium, middle */
-.cust-action-bar .btn.order { flex: 3; font-size: 0.82rem; }  /* largest, right — most prominent */
+.cust-action-bar .btn.share { flex: 1; }     /* secondary, left */
+.cust-action-bar .btn.order { flex: 2; font-size: 0.82rem; }  /* primary, right — most prominent */
 .share-confirm {
   font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.65rem; font-weight: 600;
   letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent);
@@ -1456,7 +1456,39 @@ body {
 @media (min-width: 600px) {
   .cart-actions { flex-direction: row; }
   .cart-actions .btn { flex: 1; }
+  .cart-actions .btn.cart-save { flex: 0.6; }   /* Save is the least prominent action */
 }
+
+/* Cart-card Edit button — sits below the pole preview inside each pair card */
+.cart-edit {
+  margin: 0 10px 10px; flex-shrink: 0;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.62rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  background: none; color: var(--mid);
+  border: 1.5px solid rgba(0,0,0,0.15); border-radius: 5px;
+  min-height: 32px; cursor: pointer; transition: all var(--t);
+  touch-action: manipulation;
+}
+.cart-edit:active { background: var(--ink); color: #fff; border-color: var(--ink); }
+@media (hover:hover) { .cart-edit:hover { background: var(--ink); color: #fff; border-color: var(--ink); } }
+
+/* Background toggle — subtle icon button anchored inside the poles stage.
+   Desktop: bottom-left corner. Mobile: top-right corner (see media query). */
+.bg-toggle {
+  position: absolute; z-index: 10;
+  bottom: 12px; left: 12px;   /* desktop default — bottom-left */
+  width: 30px; height: 30px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: 1.5px solid rgba(0,0,0,0.15);
+  color: var(--mid); font-size: 1rem; line-height: 1; cursor: pointer;
+  transition: all var(--t); touch-action: manipulation;
+}
+@media (max-width: 739px) {
+  .bg-toggle { top: 12px; right: 12px; bottom: auto; left: auto; }   /* mobile — top-right */
+}
+.bg-toggle:active { transform: scale(0.92); }
+@media (hover:hover) { .bg-toggle:hover { border-color: var(--ink); color: var(--ink); } }
+.bg-toggle.dark { background: #1A1A1A; color: #fff; border-color: #1A1A1A; }
 
 </style>
 </head>
@@ -1697,8 +1729,7 @@ body {
 
       <!-- Action bar — pinned to bottom -->
       <div class="cust-action-bar">
-        <button class="btn ghost share" onclick="doShare()">Share</button>
-        <button class="btn ghost save" onclick="openSave()">Save</button>
+        <button class="btn ghost share" onclick="doShare()">Save/Share</button>
         <button class="btn accent order" onclick="doOrder()">Add to basket →</button>
       </div>
     </div>
@@ -1721,7 +1752,7 @@ body {
     <div class="card-grid-3" id="cart-grid"></div>
   </div>
   <div class="cart-actions" id="cart-actions">
-    <button class="btn ghost cart-browse" onclick="cartAddAndBrowse(this)">Add to cart and browse apparel</button>
+    <button class="btn ghost cart-save" onclick="openBasketSaveOptions()">Save your designs</button>
     <button class="btn accent cart-checkout" onclick="cartCheckout(this)">Continue to checkout →</button>
   </div>
 </div>
@@ -1754,8 +1785,8 @@ body {
 <div class="ov" id="ov-save" onclick="if(event.target===this)closeOv()">
   <div class="ov-box">
     <div class="ov-handle"></div>
-    <div class="ov-title">Save Your Design</div>
-    <div class="ov-sub">We'll email you a link to come back or order</div>
+    <div class="ov-title" id="ov-title">Save Your Design</div>
+    <div class="ov-sub" id="ov-sub">We'll email you a link to come back or order</div>
     <div class="ov-poles"><div class="poles-wrap" id="ov-poles"></div></div>
     <div class="ov-lbl">Your email</div>
     <div class="ov-email-row">
@@ -1790,9 +1821,41 @@ body {
   <div class="save-popup-box">
     <button class="save-popup-x" onclick="closeSavePopup()" aria-label="Close">✕</button>
     <div class="save-popup-check">✓</div>
-    <div class="save-popup-title">Your design is saved!</div>
-    <div class="save-popup-sub">Check your inbox for the link.</div>
+    <div class="save-popup-title" id="save-popup-title">Your design is saved!</div>
+    <div class="save-popup-sub" id="save-popup-sub">Check your inbox for the link.</div>
     <div class="save-popup-sub">Don't see it? Check your Promotions tab.</div>
+  </div>
+</div>
+
+<div class="save-popup" id="edit-choice-popup" onclick="if(event.target===this)closeEditChoice()">
+  <div class="save-popup-box">
+    <button class="save-popup-x" onclick="closeEditChoice()" aria-label="Close">✕</button>
+    <div class="save-popup-title">Editing a pair</div>
+    <div class="save-popup-sub" style="margin-bottom:18px;">Apply your changes as an update, or add them as a new pair?</div>
+    <button class="btn accent" style="width:100%;margin-bottom:8px;" onclick="editChoiceUpdate()">Update design</button>
+    <button class="btn ghost" style="width:100%;" onclick="editChoiceAddNew()">Add as new pair</button>
+  </div>
+</div>
+
+<!-- Basket "Save your designs" → choose how to save -->
+<div class="save-popup" id="basket-save-options" onclick="if(event.target===this)closeBasketSaveOptions()">
+  <div class="save-popup-box">
+    <button class="save-popup-x" onclick="closeBasketSaveOptions()" aria-label="Close">✕</button>
+    <div class="save-popup-title">Save your designs</div>
+    <div class="save-popup-sub" style="margin-bottom:18px;">Grab a shareable link, or have it emailed to you.</div>
+    <button class="btn accent" style="width:100%;margin-bottom:8px;" onclick="basketCopyLink()">Copy link</button>
+    <button class="btn ghost" style="width:100%;" onclick="basketEmailLink()">Email me the link</button>
+  </div>
+</div>
+
+<!-- Customiser "Save/Share" → choose how to save this design -->
+<div class="save-popup" id="design-save-options" onclick="if(event.target===this)closeDesignSaveOptions()">
+  <div class="save-popup-box">
+    <button class="save-popup-x" onclick="closeDesignSaveOptions()" aria-label="Close">✕</button>
+    <div class="save-popup-title">Save / Share</div>
+    <div class="save-popup-sub" style="margin-bottom:18px;">Grab a shareable link, or have it emailed to you.</div>
+    <button class="btn accent" style="width:100%;margin-bottom:8px;" onclick="designCopyLink()">Copy link</button>
+    <button class="btn ghost" style="width:100%;" onclick="designEmailLink()">Email me the link</button>
   </div>
 </div>
 
@@ -2816,6 +2879,9 @@ function resetState() {
   S.prevP1 = {};
   S.prevP2 = {};
   S.prevSlotColors = {};
+  // Any fresh (non-edit) entry into the customiser cancels an in-progress edit.
+  // editCartPair() sets its marker *after* calling resetState(), so it's safe.
+  clearEditing();
 }
 
 /* ══════════════════════════════════════════════════
@@ -2823,6 +2889,7 @@ function resetState() {
    ══════════════════════════════════════════════════ */
 function initCustomiser() {
   zoom = { scale:1, tx:0, ty:0 };   // start un-zoomed each time we enter the editor
+  applyStageBg();                   // restore the stage background preference
   buildColorPicker();
   buildConstraintToggles();
   buildSlotRow();
@@ -2959,7 +3026,7 @@ function initCustomiser() {
         if (S.activeColor && !S.adjustLedgesMode) {
           const key = r.pole + r.idx;
           if (!drag.painted.has(key)) {
-            paintRing(r.pole, r.idx, S.activeColor);
+            paintRing(r.pole, r.idx, S.activeColor, true);   // drag → never revert
             drag.painted.add(key);
             refreshPoles();
           }
@@ -3288,13 +3355,15 @@ function ringClick(poleKey, idx) {
   /* No color active — nothing to do */
 }
 
-function paintRing(poleKey, idx, hex) {
+function paintRing(poleKey, idx, hex, isFromDrag=false) {
   const arr  = poleKey==='p1' ? S.p1 : S.p2;
   const prev = poleKey==='p1' ? S.prevP1 : S.prevP2;
-  // Re-applying the active color to a ring that already has it reverts the ring to
-  // the color it held before — a one-step undo on that single ring.
   if (arr[idx] === hex) {
-    if (idx in prev) { arr[idx] = prev[idx]; delete prev[idx]; }
+    // Re-applying the active color to a ring that already has it reverts the ring
+    // to the color it held before — but ONLY on a single tap. During a drag we
+    // always paint forward and never revert, so a finger passing back over an
+    // already-painted ring leaves it painted.
+    if (!isFromDrag && idx in prev) { arr[idx] = prev[idx]; delete prev[idx]; }
     return;
   }
   // Otherwise paint normally, remembering the color we're covering up.
@@ -3318,7 +3387,7 @@ function dragMove(e) {
   if (ring) {
     const key = ring.pole+ring.idx;
     if (!drag.painted.has(key)) {
-      paintRing(ring.pole, ring.idx, S.activeColor);
+      paintRing(ring.pole, ring.idx, S.activeColor, true);   // drag → never revert
       drag.painted.add(key);
       refreshPoles();
     }
@@ -3629,8 +3698,10 @@ function refreshPoles() {
     <div class="pole-col"><div class="pole-lbl">Pole 1</div>${buildPoleHTML(S.p1,D,'p1',true)}</div>
     <div class="pole-col"><div class="pole-lbl">Pole 2</div>${buildPoleHTML(S.p2,D,'p2',true)}</div>
   </div>
-  <button class="zoom-reset-btn" onclick="resetZoom()" aria-label="Reset zoom">⤢ Reset</button>`;
+  <button class="zoom-reset-btn" onclick="resetZoom()" aria-label="Reset zoom">⤢ Reset</button>
+  <button class="bg-toggle" id="bg-toggle" onclick="toggleStageBg()" title="Toggle background" aria-label="Toggle stage background">◐</button>`;
   applyZoom();                       // re-apply any active pinch/double-tap zoom to the new poles-wrap
+  applyStageBg();                    // re-anchor the (re-created) background toggle + stage color
   if (S.slotMode) buildSlotRow();   // keep slot swatches/weights in sync with ring colors & ledges
 }
 
@@ -3727,16 +3798,22 @@ function showToast(message) {
   if(toastTimer) clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>el.classList.remove('show'),2000);
 }
-async function doShare() {
+/* Save/Share — open the small options panel (Copy link / Email me the link).
+   No copy or toast happens here. */
+function doShare() {
+  document.getElementById('design-save-options').classList.add('open');
+}
+function closeDesignSaveOptions() {
+  document.getElementById('design-save-options').classList.remove('open');
+}
+
+/* Option A — copy this design's share link to the clipboard. No Klaviyo trigger. */
+async function designCopyLink() {
   const url = shareURL();
-  console.log('doShare called', url);
-
-  const shareUrl = url;
   document.querySelector('meta[property="og:url"]')
-    ?.setAttribute('content', shareUrl);
+    ?.setAttribute('content', url);
   document.querySelector('meta[property="twitter:url"]')
-    ?.setAttribute('content', shareUrl);
-
+    ?.setAttribute('content', url);
   try {
     if (navigator.clipboard && window.isSecureContext) {
       await navigator.clipboard.writeText(url);
@@ -3755,11 +3832,13 @@ async function doShare() {
     console.error('Copy failed:', err);
     showToast('URL Copied!');
   }
+  closeDesignSaveOptions();
+}
 
-  window._learnq = window._learnq || [];
-  window._learnq.push(['track', 'Design Shared', {
-    design_url: shareURL()
-  }]);
+/* Option B — capture an email and send this design's link via Klaviyo. */
+function designEmailLink() {
+  closeDesignSaveOptions();
+  openSave();   // design-mode email overlay (title "Save Your Design")
 }
 /* ══════════════════════════════════════════════════
    CART — session-persistent, in-tool cart of pole pairs
@@ -3775,18 +3854,81 @@ function getCart() {
 function setCart(arr) {
   try { sessionStorage.setItem(CART_KEY, JSON.stringify(arr)); } catch(e){}
 }
+/* Build a cart line-item snapshot of the current design. Carries the palette /
+   pattern / slot context so a pair can be re-edited (see editCartPair) and the
+   whole basket can be serialised (see encodeBasket). */
+function currentCartItem() {
+  return {
+    designUrl:  shareURL(),
+    p1Colors:   S.p1.slice(),
+    p2Colors:   S.p2.slice(),
+    paletteIdx: S.constrainedPalette,   // constrained palette index, or null
+    patternIdx: S.patternLoaded,        // pattern index, or null
+    slotMode:   S.slotMode,             // boolean
+    timestamp:  Date.now()
+  };
+}
 /* Snapshot the current design and push it onto the cart. Returns false at max. */
 function addCurrentToCart() {
   const cart = getCart();
   if (cart.length >= CART_MAX) return false;
-  cart.push({
-    designUrl: shareURL(),
-    p1Colors:  S.p1.slice(),
-    p2Colors:  S.p2.slice(),
-    timestamp: Date.now()
-  });
+  cart.push(currentCartItem());
   setCart(cart);
   return true;
+}
+
+/* ══════════════════════════════════════════════════
+   BASKET SERIALISATION — encode every pair into one ?basket= param and restore
+   the whole basket from it on load.
+   ══════════════════════════════════════════════════ */
+function encodeBasket() {
+  const pairs = getCart().map(item => ({
+    designUrl:  item.designUrl,
+    paletteIdx: item.paletteIdx ?? null,
+    patternIdx: item.patternIdx ?? null,
+    slotMode:   !!item.slotMode
+  }));
+  const json = JSON.stringify(pairs);
+  const packed = LZString.compressToBase64(json);   // JSON → LZString → base64
+  try {
+    const u = new URL(window.location.href); u.search = '';
+    u.searchParams.set('basket', packed);            // URLSearchParams handles URL-encoding
+    return u.toString();
+  } catch(e) {
+    return window.location.origin + window.location.pathname + '?basket=' + encodeURIComponent(packed);
+  }
+}
+/* On load: if a ?basket= param is present, rebuild the full cart from it and open
+   the basket. Each pair restores its own design plus palette / pattern / slot
+   constraints. Returns true if a basket was restored. */
+function decodeBasket() {
+  let raw;
+  try {
+    const p = new URLSearchParams(window.location.search);
+    if (!p.has('basket')) return false;
+    raw = p.get('basket');
+  } catch(e) { return false; }
+  try {
+    const json = LZString.decompressFromBase64(raw);
+    if (!json) return false;
+    const pairs = JSON.parse(json);
+    if (!Array.isArray(pairs) || !pairs.length) return false;
+    const cart = pairs.slice(0, CART_MAX).map(pair => {
+      const d = decodeDesignURL(pair.designUrl) || {};
+      return {
+        designUrl:  pair.designUrl,
+        p1Colors:   d.p1 || new Array(N).fill(BLACK),
+        p2Colors:   d.p2 || new Array(N).fill(BLACK),
+        paletteIdx: pair.paletteIdx ?? null,
+        patternIdx: pair.patternIdx ?? null,
+        slotMode:   !!pair.slotMode,
+        timestamp:  Date.now()
+      };
+    });
+    setCart(cart);
+    goTo('cart');
+    return true;
+  } catch(e) { return false; }
 }
 function removeCartItem(i) {
   const cart = getCart();
@@ -3795,12 +3937,81 @@ function removeCartItem(i) {
   renderCart();
 }
 
-/* Order Now — capture the current design, add it to the cart, open the cart. */
+/* Order Now — capture the current design, add it to the cart, open the cart.
+   If we arrived here by editing an existing pair, ask whether to update that pair
+   in place or add the edit as a new pair instead (see the edit-choice popup). */
 function doOrder() {
+  if (getEditingIndex() !== null) { openEditChoice(); return; }
+  finalizeAddNew();
+}
+/* Push the current design as a brand-new cart pair and open the basket. */
+function finalizeAddNew() {
   if (!addCurrentToCart()) showToast('Cart is full (6 pairs max)');
   window._learnq = window._learnq || [];
   window._learnq.push(['track', 'Added To Cart', { design_url: shareURL() }]);
   goTo('cart');
+}
+
+/* ── Basket editing markers (sessionStorage) ── */
+const EDITING_KEY = 'twiigs_editing';
+function getEditingIndex() {
+  try {
+    const v = sessionStorage.getItem(EDITING_KEY);
+    return v === null ? null : parseInt(v, 10);
+  } catch(e) { return null; }
+}
+function clearEditing() { try { sessionStorage.removeItem(EDITING_KEY); } catch(e){} }
+
+/* Load an existing basket pair back into the editor. Closes the basket, restores
+   the design + its palette / pattern / slot constraints, and marks it as the
+   pair currently being edited. */
+function editCartPair(i) {
+  const cart = getCart();
+  const pair = cart[i];
+  if (!pair) return;
+  resetState();
+  const d = decodeDesignURL(pair.designUrl);
+  if (d) {
+    S.p1  = d.p1  || new Array(N).fill(BLACK);
+    S.p2  = d.p2  || new Array(N).fill(BLACK);
+    S.big = d.big ? new Set(d.big) : new Set(DEF_BIG);
+  } else {
+    S.p1 = (pair.p1Colors || new Array(N).fill(BLACK)).slice();
+    S.p2 = (pair.p2Colors || new Array(N).fill(BLACK)).slice();
+  }
+  // Restore the editing context from the stored pair (item 2b).
+  S.constrainedPalette = pair.paletteIdx ?? null;
+  S.patternLoaded      = pair.patternIdx ?? null;
+  S.slotMode           = pair.patternIdx !== null && pair.patternIdx !== undefined;
+  E.palette            = S.constrainedPalette;
+  E.pattern            = S.patternLoaded;
+  if (S.patternLoaded !== null && PATTERNS[S.patternLoaded]) {
+    S.slotP1 = PATTERNS[S.patternLoaded].p1.slice();
+    S.slotP2 = PATTERNS[S.patternLoaded].p2.slice();
+  }
+  S.unlocked = S.constrainedPalette === null;
+  try { sessionStorage.setItem(EDITING_KEY, String(i)); } catch(e){}
+  goTo('cust');
+}
+
+function openEditChoice()  { document.getElementById('edit-choice-popup').classList.add('open'); }
+function closeEditChoice() { document.getElementById('edit-choice-popup').classList.remove('open'); }
+/* "Update design" → replace the pair being edited in place. */
+function editChoiceUpdate() {
+  const idx  = getEditingIndex();
+  const cart = getCart();
+  if (idx !== null && cart[idx]) { cart[idx] = currentCartItem(); setCart(cart); }
+  clearEditing();
+  closeEditChoice();
+  window._learnq = window._learnq || [];
+  window._learnq.push(['track', 'Added To Cart', { design_url: shareURL() }]);
+  goTo('cart');
+}
+/* "Add as new pair" → keep the original, append the edit as a fresh pair. */
+function editChoiceAddNew() {
+  clearEditing();
+  closeEditChoice();
+  finalizeAddNew();
 }
 
 /* Add all cart pairs to Shopify via a hidden form POST to /cart/add.
@@ -3897,6 +4108,7 @@ function renderCart() {
     html += `<div class="flow-card cart-card">
       <button class="cart-remove" onclick="removeCartItem(${i})" aria-label="Remove pair">✕</button>
       <div class="flow-card-visual cart-card-visual" data-cart-idx="${i}"></div>
+      <button class="cart-edit" onclick="editCartPair(${i})">Edit</button>
     </div>`;
   });
   // Show a single dashed "Add another pair" slot while there's room.
@@ -3932,8 +4144,69 @@ function doMysteryOrder() {
     }).toString();
   window.open(url, '_blank');
 }
+/* Which flow the save overlay is serving: 'design' (single design, from the
+   customiser) or 'basket' (whole basket, from the cart Save button). */
+let saveMode = 'design';
+let lastBasketUrl = '';
+
 function openSave() {
+  saveMode = 'design';
+  document.getElementById('ov-title').textContent = 'Save Your Design';
+  document.getElementById('ov-sub').textContent   = "We'll email you a link to come back or order";
   buildOvPoles();
+  document.getElementById('ov-poles').closest('.ov-poles').style.display = '';
+  document.getElementById('ov-email').value='';
+  document.getElementById('ov-confirm').classList.remove('show');
+  document.getElementById('ov-save').classList.add('open');
+}
+
+/* Basket "Save your designs" button — open the small options panel (Copy link /
+   Email me the link). No copy or toast happens here. */
+function openBasketSaveOptions() {
+  if (!getCart().length) return;
+  document.getElementById('basket-save-options').classList.add('open');
+}
+function closeBasketSaveOptions() {
+  document.getElementById('basket-save-options').classList.remove('open');
+}
+
+/* Serialise the whole basket into a ?basket= URL, remembering it for the email
+   flow. Shared by both save options. */
+function buildBasketUrl() {
+  const url = encodeBasket();
+  lastBasketUrl = url;
+  return url;
+}
+
+/* Option A — copy the basket link to the clipboard. */
+async function basketCopyLink() {
+  const basketUrl = buildBasketUrl();
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(basketUrl);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = basketUrl;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    showToast('Basket link copied!');
+  } catch(err) { showToast('Basket link copied!'); }
+  closeBasketSaveOptions();
+}
+
+/* Option B — capture an email and send the basket link via Klaviyo. */
+function basketEmailLink() {
+  buildBasketUrl();
+  closeBasketSaveOptions();
+  // Open the save overlay in basket mode.
+  saveMode = 'basket';
+  document.getElementById('ov-title').textContent = 'Save your designs';
+  document.getElementById('ov-sub').textContent   = "We'll email you a link to your full basket so you can come back anytime";
+  document.getElementById('ov-poles').closest('.ov-poles').style.display = 'none';
   document.getElementById('ov-email').value='';
   document.getElementById('ov-confirm').classList.remove('show');
   document.getElementById('ov-save').classList.add('open');
@@ -4004,11 +4277,35 @@ async function submitSave() {
     return;
   }
 
-  const designUrl = shareURL();
   const marketingOptIn = document.getElementById('ov-marketing-optin').checked;
-
-  // Identify the user and track the event via Klaviyo onsite JS
   window._learnq = window._learnq || [];
+
+  if (saveMode === 'basket') {
+    const basketUrl = lastBasketUrl || encodeBasket();
+    const pairCount = getCart().length;
+
+    // Identify the now-known profile with the basket URL.
+    window._learnq.push(['identify', {
+      '$email': email,
+      'Basket URL': basketUrl
+    }]);
+    // Track the Basket Saved event.
+    window._learnq.push(['track', 'Basket Saved', {
+      basket_url: basketUrl,
+      pair_count: pairCount
+    }]);
+    // Add to the Design Saves list with the basket URL as a property.
+    await klaviyoSubscribe(email, 'UkMqYU', { basket_url: basketUrl });
+
+    if (marketingOptIn) {
+      await klaviyoSubscribe(email, 'UcWEqh', {});
+    }
+
+    showSavePopup('basket');
+    return;
+  }
+
+  const designUrl = shareURL();
 
   // Identify with email and design URL as property
   window._learnq.push(['identify', {
@@ -4030,13 +4327,22 @@ async function submitSave() {
   }
 
   // Show confirmation popup
-  showSavePopup();
+  showSavePopup('design');
 }
 function closeOv() { document.getElementById('ov-save').classList.remove('open'); }
 
 let savePopupTimer = null;
-function showSavePopup() {
+function showSavePopup(mode) {
   closeOv();   // never show the save overlay and popup at the same time
+  const title = document.getElementById('save-popup-title');
+  const sub   = document.getElementById('save-popup-sub');
+  if (mode === 'basket') {
+    if (title) title.textContent = 'Check your email for your basket link!';
+    if (sub)   sub.textContent   = 'We just sent you a link to your full basket.';
+  } else {
+    if (title) title.textContent = 'Your design is saved!';
+    if (sub)   sub.textContent   = 'Check your inbox for the link.';
+  }
   document.getElementById('save-popup').classList.add('open');
   clearTimeout(savePopupTimer);
   savePopupTimer = setTimeout(closeSavePopup, 10000);
@@ -4103,6 +4409,28 @@ function checkURL() {
 }
 
 /* ══════════════════════════════════════════════════
+   POLES-STAGE BACKGROUND TOGGLE — light (var(--bg)) ⇄ dark (#1A1A1A).
+   Only the stage background changes; the rest of the page is untouched. The
+   preference is remembered for the session.
+   ══════════════════════════════════════════════════ */
+const BG_PREF_KEY = 'twiigs_bg_pref';
+function getBgPref() {
+  try { return sessionStorage.getItem(BG_PREF_KEY) || 'light'; } catch(e) { return 'light'; }
+}
+function applyStageBg() {
+  const pref  = getBgPref();
+  const stage = document.getElementById('poles-stage');
+  const btn   = document.getElementById('bg-toggle');
+  if (stage) stage.style.background = pref === 'dark' ? '#1A1A1A' : 'var(--bg)';
+  if (btn) { btn.classList.toggle('dark', pref === 'dark'); btn.textContent = pref === 'dark' ? '◑' : '◐'; }
+}
+function toggleStageBg() {
+  const next = getBgPref() === 'light' ? 'dark' : 'light';
+  try { sessionStorage.setItem(BG_PREF_KEY, next); } catch(e){}
+  applyStageBg();
+}
+
+/* ══════════════════════════════════════════════════
    MOBILE POLES-STAGE HEIGHT — set explicitly in JS rather than relying on
    flexbox, which left dead space below the poles at 4–5 control rows.
    Stage height = viewport − nav − controls, so it always exactly fills the gap.
@@ -4162,6 +4490,7 @@ window._learnq.push(['track', 'Tool Opened', {
   timestamp: new Date().toISOString()
 }]);
 initLanding();
+decodeBasket();          // restore a full basket from a ?basket= link (opens the cart)
 checkURL();
 refreshYourPolesBtns();  // reflect a pre-existing sessionStorage cart on first paint
 maybeShowMobileWarning();
