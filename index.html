@@ -4467,6 +4467,18 @@ window.addEventListener('resize',()=>{
 });
 
 /* ══════════════════════════════════════════════════
+   KEYBOARD SHORTCUTS — Cmd+Z (Mac) / Ctrl+Z (Windows) to undo, but only while
+   the customiser screen is active.
+   ══════════════════════════════════════════════════ */
+document.addEventListener('keydown', function(e) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+    if (!document.getElementById('s-cust').classList.contains('active')) return;
+    e.preventDefault();
+    doUndo();
+  }
+});
+
+/* ══════════════════════════════════════════════════
    DESKTOP RECOMMENDATION MODAL (item 1) — once per session, width < 740px
    ══════════════════════════════════════════════════ */
 const MOBILE_WARN_KEY = 'twiigs_desktop_prompt';
