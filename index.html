@@ -944,6 +944,21 @@ body {
   color: var(--ink); line-height: 1.65; margin: 0 0 12px;
 }
 .spacing-popup-text:last-child { margin-bottom: 0; }
+
+/* Inventory warning modal (shown before checkout when colors are low/out) */
+.ov-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 10001;
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.5); padding: 20px;
+  animation: savePopFade 0.2s ease;
+}
+.ov-backdrop.active { display: flex; }
+.ov-card {
+  position: relative; background: #fff; border-radius: 12px;
+  padding: 24px; width: 100%; max-width: 340px;
+  box-shadow: var(--shl);
+}
+
 @media (min-width:740px) {
   .ov { align-items: center; padding: 20px; }
   .ov-box { border-radius: 18px; padding-bottom: 32px; }
@@ -4014,6 +4029,129 @@ function editChoiceAddNew() {
   finalizeAddNew();
 }
 
+/* ══════════════════════════════════════════════════
+   GOOGLE SHEETS INVENTORY INTEGRATION
+   ══════════════════════════════════════════════════ */
+const INVENTORY_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqAe4uhYnuWEmX3w5dgFjaiGa7mBnbrPPoUSpT4kZvPidBzLiiXTlf1qPi8LtfqAzehHwMZg7G_VUY/pub?gid=476109525&single=true&output=csv';
+
+let inventoryStatus = {}; // { 'Black': 'OK', 'Teal': 'LOW', ... }
+
+async function fetchInventory() {
+  try {
+    const res = await fetch(INVENTORY_URL);
+    const csv = await res.text();
+    const rows = csv.trim().split('\n').slice(1); // skip header
+    rows.forEach(row => {
+      const cols = row.split(',');
+      if (cols.length < 5) return;
+      const color   = cols[0].trim();
+      const overall = cols[4].trim(); // Column E = Overall
+      if (color) inventoryStatus[color] = overall;
+    });
+  } catch(e) {
+    console.log('Inventory fetch failed silently', e);
+    // Fail silently — tool works normally if sheet unreachable
+  }
+}
+
+// Call on page load, then refresh every 5 minutes.
+fetchInventory();
+setInterval(fetchInventory, 5 * 60 * 1000);
+
+/* Scan every color across both poles of every pair and bucket by stock status. */
+function checkInventoryForPairs(pairs) {
+  const low = new Set();
+  const out = new Set();
+
+  pairs.forEach(pair => {
+    // Check all ring colors in both poles
+    [...(pair.p1Colors || []), ...(pair.p2Colors || [])].forEach(hex => {
+      const colorName = COLORS.find(c => c.hex === hex)?.name;
+      if (!colorName) return;
+      const status = inventoryStatus[colorName];
+      if (status === 'OUT') out.add(colorName);
+      else if (status === 'LOW') low.add(colorName);
+    });
+  });
+
+  return { low: [...low], out: [...out] };
+}
+
+/* Populate + show the pre-checkout inventory warning modal. */
+function showInventoryWarning(low, out) {
+  const modal = document.getElementById('ov-inventory-warning');
+
+  let html = '';
+
+  if (out.length > 0) {
+    html += '<p style="margin-bottom:8px;font-weight:600;">Out of stock:</p>';
+    html += out.map(c =>
+      `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span style="width:10px;height:10px;border-radius:50%;
+        background:#e53e3e;display:inline-block;"></span>
+        <span>${c} — out of stock</span>
+      </div>`
+    ).join('');
+  }
+
+  if (low.length > 0) {
+    html += '<p style="margin:12px 0 8px;font-weight:600;">Low stock:</p>';
+    html += low.map(c =>
+      `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <span style="width:10px;height:10px;border-radius:50%;
+        background:#d69e2e;display:inline-block;"></span>
+        <span>${c} — low stock</span>
+      </div>`
+    ).join('');
+  }
+
+  document.getElementById('inventory-color-list').innerHTML = html;
+
+  const subtext = out.length > 0
+    ? "Some colors in your design are out of stock. You can still place your order and we'll reach out, or redesign with available colors."
+    : "Some colors in your design are running low. We'll do our best to fulfill your order but can't guarantee availability.";
+
+  document.getElementById('inventory-subtext').textContent = subtext;
+  modal.style.display = 'flex';
+  modal.classList.add('active');
+}
+
+/* Dismiss the warning modal and complete checkout (redirect this tab to Shopify).
+   Also invoked directly by cartCheckout() when there are no inventory issues. */
+function proceedToCheckout() {
+  const modal = document.getElementById('ov-inventory-warning');
+  if (modal) { modal.classList.remove('active'); modal.style.display = 'none'; }
+  const cart = getCart();
+  if (!cart.length) return;
+  sessionStorage.removeItem(CART_KEY);
+  submitShopifyCartForm(cart, '_self');
+}
+
+/* Build the hidden per-pair inventory breakdown string for a single pole, e.g.
+   "Black rings x18, Teal ledges x4, Black caps x1". Rings = non-ledge/non-cap
+   positions, ledges = positions in the pair's ledge set, caps = position 0. */
+function poleInventoryString(hexArr, bigSet) {
+  const rings = {}, ledges = {}, caps = {};
+  (hexArr || []).forEach((hex, i) => {
+    const name = COLORS.find(c => c.hex === hex)?.name || hex;
+    const bucket = i === 0 ? caps : (bigSet.has(i) ? ledges : rings);
+    bucket[name] = (bucket[name] || 0) + 1;
+  });
+  const parts = [];
+  Object.entries(rings).forEach(([n, c]) => parts.push(`${n} rings x${c}`));
+  Object.entries(ledges).forEach(([n, c]) => parts.push(`${n} ledges x${c}`));
+  Object.entries(caps).forEach(([n, c]) => parts.push(`${n} caps x${c}`));
+  return parts.join(', ');
+}
+
+/* Full per-pair breakdown: one line per pole, poles separated by " | ". */
+function pairInventoryAttr(pair) {
+  const d = decodeDesignURL(pair.designUrl);
+  const bigSet = (d && d.big) ? new Set(d.big) : new Set(DEF_BIG);
+  return [poleInventoryString(pair.p1Colors, bigSet),
+          poleInventoryString(pair.p2Colors, bigSet)].join(' | ');
+}
+
 /* Add all cart pairs to Shopify via a hidden form POST to /cart/add.
    A top-level form navigation isn't subject to CORS (unlike a fetch), so this
    sidesteps the cross-origin failure. Each pair carries its own line-item
@@ -4032,7 +4170,10 @@ function submitShopifyCartForm(pairs, target) {
       [`items[${i}][id]`]:                         SHOPIFY_VARIANT_ID,
       [`items[${i}][quantity]`]:                   1,
       [`items[${i}][properties][Pair]`]:           i + 1,
-      [`items[${i}][properties][Design URL]`]:     pair.designUrl
+      [`items[${i}][properties][Design URL]`]:     pair.designUrl,
+      // Hidden per-pair inventory breakdown — shows in Shopify admin under
+      // Additional Details so stock can be reconciled per order.
+      [`attributes[Pair ${i + 1} Inventory]`]:     pairInventoryAttr(pair)
     };
     Object.entries(fields).forEach(([name, value]) => {
       const input = document.createElement('input');
@@ -4056,8 +4197,16 @@ function cartAddAnother() { goTo('land'); }
 function cartCheckout(btn) {
   const cart = getCart();
   if (!cart.length) return;
-  sessionStorage.removeItem(CART_KEY);
-  submitShopifyCartForm(cart, '_self');
+
+  // Inventory gate: warn (and stop) if any color is low/out of stock.
+  const { low, out } = checkInventoryForPairs(cart);
+  if (out.length > 0 || low.length > 0) {
+    showInventoryWarning(low, out);
+    return; // stop checkout until user confirms
+  }
+
+  // If no issues, proceed to Shopify.
+  proceedToCheckout();
 }
 
 /* Button 3: add all pairs to Shopify in a new tab, open the shop in another,
@@ -4508,5 +4657,39 @@ refreshYourPolesBtns();  // reflect a pre-existing sessionStorage cart on first 
 maybeShowMobileWarning();
 setPolesStageHeight();   // no-op unless the customiser is the active screen on load
 </script>
+
+<div id="ov-inventory-warning" class="ov-backdrop"
+  style="display:none;">
+  <div class="ov-card" style="max-width:340px;">
+    <div style="font-family:'Plus Jakarta Sans',sans-serif;
+      font-size:1rem;font-weight:700;margin-bottom:12px;">
+      Heads up
+    </div>
+    <div id="inventory-subtext"
+      style="font-size:0.85rem;color:var(--mid);
+      margin-bottom:16px;line-height:1.5;">
+    </div>
+    <div id="inventory-color-list"
+      style="margin-bottom:20px;font-size:0.85rem;">
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn accent"
+        onclick="proceedToCheckout()"
+        style="width:100%;">
+        That's okay, checkout anyway
+      </button>
+      <button class="btn ghost"
+        onclick="document.getElementById(
+          'ov-inventory-warning'
+        ).classList.remove('active');
+        document.getElementById(
+          'ov-inventory-warning'
+        ).style.display='none';"
+        style="width:100%;">
+        Redesign my poles
+      </button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
