@@ -4034,7 +4034,7 @@ function editChoiceAddNew() {
    ══════════════════════════════════════════════════ */
 const INVENTORY_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqAe4uhYnuWEmX3w5dgFjaiGa7mBnbrPPoUSpT4kZvPidBzLiiXTlf1qPi8LtfqAzehHwMZg7G_VUY/pub?gid=476109525&single=true&output=csv';
 
-let inventoryStatus = {}; // { 'Black': 'OK', 'Teal': 'LOW', ... }
+let inventoryStatus = {}; // { 'Black': { rings: 'OK', ledges: 'LOW', caps: 'OK' } }
 
 async function fetchInventory() {
   try {
@@ -4043,10 +4043,14 @@ async function fetchInventory() {
     const rows = csv.trim().split('\n').slice(1); // skip header
     rows.forEach(row => {
       const cols = row.split(',');
-      if (cols.length < 5) return;
-      const color   = cols[0].trim();
-      const overall = cols[4].trim(); // Column E = Overall
-      if (color) inventoryStatus[color] = overall;
+      if (cols.length < 4) return;
+      const color = cols[0].trim();      // A: Color
+      if (!color) return;
+      inventoryStatus[color] = {
+        rings:  cols[1].trim(),          // B: Ring Status
+        ledges: cols[2].trim(),          // C: Ledge Status
+        caps:   cols[3].trim()           // D: Cap Status
+      };
     });
   } catch(e) {
     console.log('Inventory fetch failed silently', e);
@@ -4058,19 +4062,46 @@ async function fetchInventory() {
 fetchInventory();
 setInterval(fetchInventory, 5 * 60 * 1000);
 
-/* Scan every color across both poles of every pair and bucket by stock status. */
+/* Scan every part across both poles of every pair, checking the correct part
+   type (ring / ledge / cap) for each position against its per-part stock status. */
 function checkInventoryForPairs(pairs) {
   const low = new Set();
   const out = new Set();
 
+  // Define ledge positions
+  const LEDGE_POSITIONS = new Set([0,10,19,28,34,40]);
+  // Position 0 is top cap
+  const CAP_POSITION = 0;
+
   pairs.forEach(pair => {
-    // Check all ring colors in both poles
-    [...(pair.p1Colors || []), ...(pair.p2Colors || [])].forEach(hex => {
-      const colorName = COLORS.find(c => c.hex === hex)?.name;
-      if (!colorName) return;
-      const status = inventoryStatus[colorName];
-      if (status === 'OUT') out.add(colorName);
-      else if (status === 'LOW') low.add(colorName);
+    // Check each pole
+    [pair.p1Colors, pair.p2Colors].forEach(poleColors => {
+      (poleColors || []).forEach((hex, idx) => {
+        const colorName = COLORS.find(c => c.hex === hex)?.name;
+        if (!colorName || !inventoryStatus[colorName]) return;
+
+        const status = inventoryStatus[colorName];
+        let partStatus;
+
+        if (idx === CAP_POSITION) {
+          // Top cap
+          partStatus = status.caps;
+        } else if (LEDGE_POSITIONS.has(idx)) {
+          // Ledge disc
+          partStatus = status.ledges;
+        } else {
+          // Regular ring
+          partStatus = status.rings;
+        }
+
+        const partLabel = idx === CAP_POSITION ? 'caps' : LEDGE_POSITIONS.has(idx) ? 'ledges' : 'rings';
+
+        if (partStatus === 'OUT') {
+          out.add(`${colorName} (${partLabel})`);
+        } else if (partStatus === 'LOW') {
+          low.add(`${colorName} (${partLabel})`);
+        }
+      });
     });
   });
 
