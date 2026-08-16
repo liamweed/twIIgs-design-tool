@@ -1514,7 +1514,7 @@ body {
 }
 .bg-toggle:active { transform: scale(0.92); }
 @media (hover:hover) { .bg-toggle:hover { border-color: var(--ink); color: var(--ink); } }
-.bg-toggle.dark { background: #1A1A1A; color: #fff; border-color: #1A1A1A; }
+.bg-toggle.dark { background: #2C2C2C; color: #fff; border-color: #2C2C2C; }
 
 </style>
 </head>
@@ -3992,6 +3992,27 @@ function removeCartItem(i) {
    If we arrived here by editing an existing pair, ask whether to update that pair
    in place or add the edit as a new pair instead (see the edit-choice popup). */
 function doOrder() {
+  // Re-grip mode: skip the basket and go straight to Shopify checkout for the
+  // single design being ordered (unless colors are low/out — warn first).
+  if (isRegrip) {
+    const { low, out } = checkInventoryForPairs([{
+      p1Colors: S.p1,
+      p2Colors: S.p2
+    }]);
+
+    if (out.length > 0 || low.length > 0) {
+      showInventoryWarning(low, out);
+      return;
+    }
+
+    const designUrl = shareURL();
+    const params = new URLSearchParams();
+    params.append('attributes[Design URL]', designUrl);
+    const url = `https://shop.twiigs.co/cart/${SHOPIFY_REGRIP_VARIANT_ID}:1?${params.toString()}`;
+    window.location.href = url;
+    return;
+  }
+
   if (getEditingIndex() !== null) { openEditChoice(); return; }
   finalizeAddNew();
 }
@@ -4354,6 +4375,17 @@ function renderCart() {
   });
 }
 function doMysteryOrder() {
+  // Re-grip mode: order the re-grip kit variant instead of the standard poles.
+  if (isRegrip) {
+    const comment = document.getElementById('mystery-comment')?.value || '';
+    const params = new URLSearchParams();
+    params.append('attributes[Design URL]', 'SURPRISE ME!');
+    params.append('attributes[Special Requests]', comment);
+    const url = `https://shop.twiigs.co/cart/${SHOPIFY_REGRIP_VARIANT_ID}:1?${params.toString()}`;
+    window.location.href = url;
+    return;
+  }
+
   const comment = document.getElementById('mystery-comment')?.value || '';
   const url = 'https://shop.twiigs.co/cart/53838800650424:1?' +
     new URLSearchParams({
@@ -4627,7 +4659,7 @@ function checkURL() {
 }
 
 /* ══════════════════════════════════════════════════
-   POLES-STAGE BACKGROUND TOGGLE — light (var(--bg)) ⇄ dark (#1A1A1A).
+   POLES-STAGE BACKGROUND TOGGLE — light (var(--bg)) ⇄ dark (#2C2C2C).
    Only the stage background changes; the rest of the page is untouched. The
    preference is remembered for the session.
    ══════════════════════════════════════════════════ */
@@ -4639,7 +4671,7 @@ function applyStageBg() {
   const pref  = getBgPref();
   const stage = document.getElementById('poles-stage');
   const btn   = document.getElementById('bg-toggle');
-  if (stage) stage.style.background = pref === 'dark' ? '#1A1A1A' : 'var(--bg)';
+  if (stage) stage.style.background = pref === 'dark' ? '#2C2C2C' : 'var(--bg)';
   if (btn) { btn.classList.toggle('dark', pref === 'dark'); btn.textContent = pref === 'dark' ? '◑' : '◐'; }
 }
 function toggleStageBg() {
