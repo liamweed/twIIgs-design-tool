@@ -3992,8 +3992,8 @@ function removeCartItem(i) {
    If we arrived here by editing an existing pair, ask whether to update that pair
    in place or add the edit as a new pair instead (see the edit-choice popup). */
 function doOrder() {
-  // Re-grip mode: skip the basket and go straight to Shopify checkout for the
-  // single design being ordered (unless colors are low/out — warn first).
+  // Re-grip mode: skip the basket and add the single design being ordered to the
+  // Shopify cart, then land on the cart page (unless colors are low/out — warn first).
   if (isRegrip) {
     const { low, out } = checkInventoryForPairs([{
       p1Colors: S.p1,
@@ -4008,7 +4008,7 @@ function doOrder() {
     const designUrl = shareURL();
     const params = new URLSearchParams();
     params.append('attributes[Design URL]', designUrl);
-    const url = `https://shop.twiigs.co/cart/${SHOPIFY_REGRIP_VARIANT_ID}:1?${params.toString()}`;
+    const url = `https://shop.twiigs.co/cart/${SHOPIFY_REGRIP_VARIANT_ID}:1?${params.toString()}&redirect=cart`;
     window.location.href = url;
     return;
   }
