@@ -3992,24 +3992,20 @@ function removeCartItem(i) {
    If we arrived here by editing an existing pair, ask whether to update that pair
    in place or add the edit as a new pair instead (see the edit-choice popup). */
 function doOrder() {
-  // Re-grip mode: skip the basket and add the single design being ordered to the
-  // Shopify cart, then land on the cart page (unless colors are low/out — warn first).
+  // Re-grip mode: skip the basket and add just the current design to the Shopify
+  // cart via the same form-POST-to-/cart/add path the poles checkout uses, which
+  // reliably lands on the cart page (not checkout) so they can review first
+  // (unless colors are low/out — warn first).
   if (isRegrip) {
-    const { low, out } = checkInventoryForPairs([{
-      p1Colors: S.p1,
-      p2Colors: S.p2
-    }]);
+    const pair = { designUrl: shareURL(), p1Colors: S.p1, p2Colors: S.p2 };
+    const { low, out } = checkInventoryForPairs([pair]);
 
     if (out.length > 0 || low.length > 0) {
       showInventoryWarning(low, out);
       return;
     }
 
-    const designUrl = shareURL();
-    const params = new URLSearchParams();
-    params.append('attributes[Design URL]', designUrl);
-    const url = `https://shop.twiigs.co/cart/${SHOPIFY_REGRIP_VARIANT_ID}:1?${params.toString()}&redirect=cart`;
-    window.location.href = url;
+    submitShopifyCartForm([pair], '_self');
     return;
   }
 
@@ -4375,14 +4371,30 @@ function renderCart() {
   });
 }
 function doMysteryOrder() {
-  // Re-grip mode: order the re-grip kit variant instead of the standard poles.
+  // Re-grip mode: add the re-grip kit variant via a form POST to /cart/add so it
+  // lands on the Shopify cart page (not checkout), carrying the surprise-me note.
   if (isRegrip) {
     const comment = document.getElementById('mystery-comment')?.value || '';
-    const params = new URLSearchParams();
-    params.append('attributes[Design URL]', 'SURPRISE ME!');
-    params.append('attributes[Special Requests]', comment);
-    const url = `https://shop.twiigs.co/cart/${SHOPIFY_REGRIP_VARIANT_ID}:1?${params.toString()}`;
-    window.location.href = url;
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = 'https://shop.twiigs.co/cart/add';
+    form.target = '_self';
+    form.style.display = 'none';
+    const fields = {
+      'items[0][id]':                          SHOPIFY_REGRIP_VARIANT_ID,
+      'items[0][quantity]':                    1,
+      'items[0][properties][Design URL]':      'SURPRISE ME!',
+      'items[0][properties][Special Requests]': comment
+    };
+    Object.entries(fields).forEach(([name, value]) => {
+      const input = document.createElement('input');
+      input.type  = 'hidden';
+      input.name  = name;
+      input.value = value;
+      form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
     return;
   }
 
