@@ -140,6 +140,17 @@ body {
   color: var(--lite);
 }
 
+/* ── Re-grip mode banner (injected below the nav on every screen via JS) ── */
+.regrip-banner {
+  width: 100%; flex-shrink: 0;
+  background: #00798e; color: #fff;
+  text-align: center; padding: 6px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.72rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  z-index: 99;
+}
+
 /* ── Buttons ── */
 .btn {
   display: inline-flex; align-items: center; justify-content: center;
@@ -3861,6 +3872,31 @@ function designEmailLink() {
 const CART_KEY = 'twiigs_cart';
 const CART_MAX = 6;
 const SHOPIFY_VARIANT_ID = 53838800650424;
+const SHOPIFY_REGRIP_VARIANT_ID = 53925873909944;
+/* Re-grip mode — set once on load from ?regrip=true and never changes for the
+   session. In this mode the tool sells a ring + ledge re-grip kit (different
+   Shopify variant) and swaps a handful of customer-facing labels. Everything
+   else — colors, palettes, tools, save/share, inventory, basket — is identical. */
+const isRegrip = new URLSearchParams(window.location.search).get('regrip') === 'true';
+
+/* Apply the re-grip label/banner swaps once on load. No-op when isRegrip is
+   false, so the default flow is completely untouched. */
+function applyRegripMode() {
+  if (!isRegrip) return;
+  // Banner below the nav on every screen.
+  document.querySelectorAll('.nav').forEach(nav => {
+    const banner = document.createElement('div');
+    banner.className = 'regrip-banner';
+    banner.textContent = 'Re-grip mode — designing your ring and ledge kit';
+    nav.insertAdjacentElement('afterend', banner);
+  });
+  // "Add to basket" order button → "Order Re-grip Kit".
+  const orderBtn = document.querySelector('.cust-action-bar .btn.order');
+  if (orderBtn) orderBtn.textContent = 'Order Re-grip Kit';
+  // Cart heading "Your Poles" → "Your Re-grip Kit".
+  const cartHed = document.querySelector('#s-cart .card-screen-hed');
+  if (cartHed) cartHed.textContent = 'Your Re-grip Kit';
+}
 
 function getCart() {
   try { return JSON.parse(sessionStorage.getItem(CART_KEY)) || []; }
@@ -4196,15 +4232,17 @@ function submitShopifyCartForm(pairs, target) {
   form.target = target;
   form.style.display = 'none';
 
+  const variantId = isRegrip ? SHOPIFY_REGRIP_VARIANT_ID : SHOPIFY_VARIANT_ID;
+  const unitLabel = isRegrip ? 'Kit' : 'Pair';
   pairs.forEach((pair, i) => {
     const fields = {
-      [`items[${i}][id]`]:                         SHOPIFY_VARIANT_ID,
+      [`items[${i}][id]`]:                         variantId,
       [`items[${i}][quantity]`]:                   1,
-      [`items[${i}][properties][Pair]`]:           i + 1,
+      [`items[${i}][properties][${unitLabel}]`]:   i + 1,
       [`items[${i}][properties][Design URL]`]:     pair.designUrl,
       // Hidden per-pair inventory breakdown — shows in Shopify admin under
       // Additional Details so stock can be reconciled per order.
-      [`attributes[Pair ${i + 1} Inventory]`]:     pairInventoryAttr(pair)
+      [`attributes[${unitLabel} ${i + 1} Inventory]`]: pairInventoryAttr(pair)
     };
     Object.entries(fields).forEach(([name, value]) => {
       const input = document.createElement('input');
@@ -4681,6 +4719,7 @@ window._learnq.push(['track', 'Tool Opened', {
   source: document.referrer || 'direct',
   timestamp: new Date().toISOString()
 }]);
+applyRegripMode();       // ?regrip=true → banner + Kit labels (no-op otherwise)
 initLanding();
 decodeBasket();          // restore a full basket from a ?basket= link (opens the cart)
 checkURL();
