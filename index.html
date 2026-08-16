@@ -1426,6 +1426,23 @@ body {
   height: auto; align-self: stretch; min-height: 0;
 }
 .cart-card-visual { padding-top: 18px; }
+
+/* Mobile: stack basket cards vertically (single column) like the style-selector
+   cards, scrolling instead of squeezing to fit. Full-width cards give the pole
+   preview extra room, so make each card taller to use it. */
+@media (max-width: 739px) {
+  #s-cart .card-screen-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  #s-cart #cart-grid {
+    grid-template-columns: 1fr;   /* single column */
+    flex: none; align-content: start;
+    grid-auto-rows: auto;         /* natural card height; grid scrolls */
+  }
+  #s-cart #cart-grid .flow-card {
+    height: 82vw; max-height: 520px;   /* taller so the full-width pole preview reads big */
+    align-self: start;
+  }
+  #s-cart #cart-grid .cart-add-card { height: 30vw; max-height: 180px; }
+}
 .cart-remove {
   position: absolute; top: 8px; right: 8px; z-index: 5;
   width: 26px; height: 26px; border-radius: 50%;
@@ -1499,7 +1516,7 @@ body {
 @media (hover:hover) { .cart-edit:hover { background: var(--ink); color: #fff; border-color: var(--ink); } }
 
 /* Background toggle — subtle icon button anchored inside the poles stage.
-   Desktop: bottom-left corner. Mobile: top-right corner (see media query). */
+   Desktop: bottom-left corner. Mobile: top-left corner (see media query). */
 .bg-toggle {
   position: absolute; z-index: 10;
   bottom: 12px; left: 12px;   /* desktop default — bottom-left */
@@ -1510,7 +1527,7 @@ body {
   transition: all var(--t); touch-action: manipulation;
 }
 @media (max-width: 739px) {
-  .bg-toggle { top: 12px; right: 12px; bottom: auto; left: auto; }   /* mobile — top-right */
+  .bg-toggle { top: 12px; left: 12px; bottom: auto; right: auto; }   /* mobile — top-left */
 }
 .bg-toggle:active { transform: scale(0.92); }
 @media (hover:hover) { .bg-toggle:hover { border-color: var(--ink); color: var(--ink); } }
@@ -2968,6 +2985,9 @@ function initCustomiser() {
     const _mid  = (a, b) => ({ x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 });
 
     stage.addEventListener('touchstart', function(e) {
+      // Background toggle lives inside the stage: let its native tap → click fire
+      // instead of preventDefault()'ing it away as a paint/drag gesture.
+      if (e.target.closest && e.target.closest('.bg-toggle')) return;
       // Two fingers → pinch-zoom (mobile only)
       if (isMobile() && e.touches.length === 2) {
         e.preventDefault();
@@ -3725,7 +3745,7 @@ function refreshPoles() {
     <div class="pole-col"><div class="pole-lbl">Pole 2</div>${buildPoleHTML(S.p2,D,'p2',true)}</div>
   </div>
   <button class="zoom-reset-btn" onclick="resetZoom()" aria-label="Reset zoom">⤢ Reset</button>
-  <button class="bg-toggle" id="bg-toggle" onclick="toggleStageBg()" title="Toggle background" aria-label="Toggle stage background">◐</button>`;
+  <button class="bg-toggle" id="bg-toggle" onclick="toggleStageBg(event)" title="Toggle background" aria-label="Toggle stage background">◐</button>`;
   applyZoom();                       // re-apply any active pinch/double-tap zoom to the new poles-wrap
   applyStageBg();                    // re-anchor the (re-created) background toggle + stage color
   if (S.slotMode) buildSlotRow();   // keep slot swatches/weights in sync with ring colors & ledges
@@ -4686,7 +4706,8 @@ function applyStageBg() {
   if (stage) stage.style.background = pref === 'dark' ? '#2C2C2C' : 'var(--bg)';
   if (btn) { btn.classList.toggle('dark', pref === 'dark'); btn.textContent = pref === 'dark' ? '◑' : '◐'; }
 }
-function toggleStageBg() {
+function toggleStageBg(e) {
+  if (e) e.stopPropagation();   // don't let the stage's drag/paint touch handlers eat this tap
   const next = getBgPref() === 'light' ? 'dark' : 'light';
   try { sessionStorage.setItem(BG_PREF_KEY, next); } catch(e){}
   applyStageBg();
