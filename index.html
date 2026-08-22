@@ -1446,7 +1446,10 @@ body {
   /* Pole preview padded/centered exactly like the style picker's .flow-card-visual
      (undo the desktop cart-card-visual padding-top:18px override). */
   #s-cart #cart-grid .cart-card-visual { padding: 10px 8px 6px; }
-  #s-cart #cart-grid .cart-add-card { height: 30vw; max-height: 180px; }
+  /* "Add another pair" is a permanent action-bar button on mobile, so drop its
+     empty-slot card from the grid entirely (it stays in the grid on desktop). */
+  #s-cart #cart-grid .cart-add-card { display: none; }
+  .cart-add-btn { display: block; }
 
   /* Edit button sits at the bottom exactly like the style picker's centered
      style-name label — same font size/style, stripped of its button chrome. */
@@ -1458,32 +1461,26 @@ body {
   }
   #s-cart #cart-grid .cart-card .cart-edit:active { background: none; color: var(--ink); }
 
-  /* Single pair in the basket: show BOTH the pole card and the "Add another pair"
-     card on screen without scrolling. The grid fills the space the nav + action
-     bar leave, then splits it 60% pole / 40% add card with the standard 8px gap.
-     Each preview scales to fit its card via szForEl(). */
+  /* Single pair in the basket: the lone pole card fills the space the nav +
+     action bar leave, centered. "Add another pair" now lives in the action bar,
+     so the card reclaims that room — height 75% of the grid is a 25% increase on
+     the previous 60% split. The preview scales to fit via szForEl(). */
   #s-cart #cart-grid.cart-single {
     flex: 1; min-height: 0;
-    align-content: stretch;
-    grid-template-rows: 3fr 2fr;   /* pole card 60%, add card 40% of available height */
+    align-content: center;
     justify-items: center;
   }
-  #s-cart #cart-grid.cart-single .cart-card,
-  #s-cart #cart-grid.cart-single .cart-add-card {
+  #s-cart #cart-grid.cart-single .cart-card {
     width: 62%; max-width: 300px;
-    height: auto; max-height: none;
-    align-self: stretch; min-height: 0;
+    height: 75%; max-height: none;
+    align-self: center; min-height: 0;
   }
 
-  /* 2+ pairs in the basket: a 2-column grid exactly like the style picker cards,
-     with the "Add another pair" card sharing the same grid. Scrolls if it
-     overflows (card-screen-body keeps overflow-y:auto). */
+  /* 2+ pairs in the basket: a 2-column grid exactly like the style picker cards.
+     Scrolls if it overflows (card-screen-body keeps overflow-y:auto). */
   #s-cart #cart-grid.cart-multi {
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-  }
-  #s-cart #cart-grid.cart-multi .cart-add-card {
-    height: 85.5vw; max-height: 495px;   /* match the pole cards so grid rows align */
   }
 }
 .cart-remove {
@@ -1539,6 +1536,9 @@ body {
   background: var(--bg);
 }
 .cart-actions .btn { min-height: 48px; }
+/* "Add another pair" lives in the grid on desktop; on mobile it moves into the
+   action bar (shown via the ≤739px rule below). Hidden by default. */
+.cart-add-btn { display: none; }
 @media (min-width: 600px) {
   .cart-actions { flex-direction: row; }
   .cart-actions .btn { flex: 1; }
@@ -1838,6 +1838,7 @@ body {
     <div class="card-grid-3" id="cart-grid"></div>
   </div>
   <div class="cart-actions" id="cart-actions">
+    <button class="btn ghost cart-add-btn" id="cart-add-btn" onclick="cartAddAnother()">+ Add another pair</button>
     <button class="btn ghost cart-save" onclick="openBasketSaveOptions()">Save your designs</button>
     <button class="btn accent cart-checkout" onclick="cartCheckout(this)">Continue to checkout →</button>
   </div>
@@ -4496,6 +4497,11 @@ function renderCart() {
     return;
   }
   if (actions) actions.style.display = '';
+
+  // Mobile-only "Add another pair" action-bar button (CSS shows it ≤739px). Hide
+  // it once the basket is full; the grid's own add-card slot is desktop-only.
+  const addBtn = document.getElementById('cart-add-btn');
+  if (addBtn) addBtn.style.display = cart.length < CART_MAX ? '' : 'none';
 
   let html = '';
   cart.forEach((item, i) => {
