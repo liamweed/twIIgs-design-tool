@@ -1433,15 +1433,42 @@ body {
 @media (max-width: 739px) {
   #s-cart .card-screen-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
   #s-cart #cart-grid {
-    grid-template-columns: 1fr;   /* single column */
+    grid-template-columns: 1fr;   /* single column, stacked vertically */
     flex: none; align-content: start;
     grid-auto-rows: auto;         /* natural card height; grid scrolls */
   }
+  /* Basket pole cards match the style picker (#s-e-style) card exactly on mobile:
+     same height, and (via .flow-card) same border, radius, background, shadow. */
   #s-cart #cart-grid .flow-card {
-    height: 82vw; max-height: 520px;   /* taller so the full-width pole preview reads big */
+    height: 85.5vw; max-height: 495px;
     align-self: start;
   }
+  /* Pole preview padded/centered exactly like the style picker's .flow-card-visual
+     (undo the desktop cart-card-visual padding-top:18px override). */
+  #s-cart #cart-grid .cart-card-visual { padding: 10px 8px 6px; }
   #s-cart #cart-grid .cart-add-card { height: 30vw; max-height: 180px; }
+
+  /* Edit button sits at the bottom exactly like the style picker's centered
+     style-name label — same font size/style, stripped of its button chrome. */
+  #s-cart #cart-grid .cart-card .cart-edit {
+    margin: 0; padding: 4px 8px 10px; text-align: center;
+    background: none; border: none; border-radius: 0; min-height: 0;
+    font-size: clamp(0.78rem, 2.4vw, 1.05rem); letter-spacing: 0.08em;
+    font-weight: 600; text-transform: uppercase; color: var(--ink);
+  }
+  #s-cart #cart-grid .cart-card .cart-edit:active { background: none; color: var(--ink); }
+
+  /* Single pair in the basket: center it and enlarge to ~1.5× the normal card
+     height, keeping the "Add another pair" slot visible below (grid scrolls if
+     the two together exceed the screen). */
+  #s-cart #cart-grid.cart-single { justify-items: center; }
+  #s-cart #cart-grid.cart-single .cart-card {
+    width: 62%; max-width: 300px;
+    height: 128vw; max-height: 620px;   /* ≈1.5× the 85.5vw / 495px picker card */
+  }
+  #s-cart #cart-grid.cart-single .cart-add-card {
+    width: 62%; max-width: 300px;
+  }
 }
 .cart-remove {
   position: absolute; top: 8px; right: 8px; z-index: 5;
@@ -1851,7 +1878,7 @@ body {
       <label for="ov-marketing-optin"
         style="font-family:'Plus Jakarta Sans',sans-serif;font-size:0.75rem;font-weight:600;
         letter-spacing:0.08em;text-transform:uppercase;color:var(--mid);">
-        Sign me up for twIIgs updates and deals
+        Let me know about exclusive deals and new drops too
       </label>
     </div>
     <div class="ov-confirm" id="ov-confirm">Design saved — check your email ✓</div>
@@ -2526,12 +2553,17 @@ let navHistory = [];
 
 function goTo(id, record=true) {
   // Push the screen we're leaving so back can return to it (never push landing).
+  // record=true also pushes a browser history state so the OS/browser back
+  // gesture (Mac 2-finger swipe, mobile back) has something to pop, which fires
+  // the popstate handler below. Back navigation calls goTo(id, false) to avoid
+  // re-pushing (record=false === "skip history").
   if (record) {
     const current = document.querySelector('.screen.active');
     if (current) {
       const curId = current.id.replace(/^s-/, '');
       if (curId !== 'land' && curId !== id) navHistory.push(curId);
     }
+    history.pushState({ screen: id }, '', window.location.search);
   }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   const el = document.getElementById('s-'+id);
@@ -2572,6 +2604,81 @@ function goBack() {
   const prev = navHistory.pop() || 'land';
   goTo(prev, false);
 }
+
+/* Should a back gesture navigate within the tool, or fall through to the
+   browser? Intercept only when there's somewhere to go back to AND we're not
+   already parked on the landing page with just its seeded 'land' entry — in
+   that state a back gesture should exit the tool, so let the browser handle it. */
+function canGoBackInTool() {
+  if (navHistory.length === 0) return false;
+  const onLanding = document.getElementById('s-land')?.classList.contains('active');
+  if (onLanding && navHistory.length === 1 && navHistory[0] === 'land') return false;
+  return true;
+}
+
+/* Browser back gesture (Mac trackpad 2-finger swipe, browser/OS back button).
+   When there's an in-tool screen to return to, pop it and navigate without
+   re-pushing history. Otherwise do nothing and let the browser navigate away. */
+window.addEventListener('popstate', function(e) {
+  if (canGoBackInTool()) {
+    const prev = navHistory.pop();
+    goTo(prev, false); // false = skip pushing to history
+  }
+});
+
+/* Mobile swipe-to-go-back: only a swipe *starting* from the far left edge
+   (within 30px) counts, so it never collides with painting drags, pinch-zoom,
+   basket scrolling, or the horizontal color picker — those all start away from
+   the edge. */
+let swipeStartX = null;
+let swipeStartY = null;
+
+document.addEventListener('touchstart', function(e) {
+  const touch = e.touches[0];
+  if (touch.clientX <= 30) {
+    swipeStartX = touch.clientX;
+    swipeStartY = touch.clientY;
+  } else {
+    swipeStartX = null;
+  }
+}, { passive: true });
+
+document.addEventListener('touchend', function(e) {
+  if (swipeStartX === null) return;
+  const touch = e.changedTouches[0];
+  const dx = touch.clientX - swipeStartX;
+  const dy = Math.abs(touch.clientY - swipeStartY);
+
+  // Swipe right at least 60px, without too much vertical drift.
+  if (dx > 60 && dy < 80) {
+    if (canGoBackInTool()) {
+      const prev = navHistory.pop();
+      goTo(prev, false);
+      e.preventDefault();
+    }
+    // Nothing to go back to (e.g. landing page): let the browser handle it.
+  }
+  swipeStartX = null;
+  swipeStartY = null;
+}, { passive: false });
+
+/* Mac trackpad 2-finger swipe-back (additional to popstate). Scrollable screens
+   (palette/style pickers) can swallow the browser back gesture as a scroll, so
+   detect the horizontal swipe directly via the wheel event. A negative deltaX is
+   a rightward swipe; require it to dominate vertical movement and clear the 30px
+   threshold, and debounce so one physical swipe triggers a single back nav. */
+document.addEventListener('wheel', function(e) {
+  if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && e.deltaX < -30) {
+    if (canGoBackInTool()) {
+      if (window._swipeDebounce) return;
+      window._swipeDebounce = true;
+      setTimeout(() => { window._swipeDebounce = false; }, 500);
+
+      const prev = navHistory.pop();
+      goTo(prev, false);
+    }
+  }
+}, { passive: true });
 
 /* entry flow state.
    customPalette: null, or an array of hex values for a user-built palette.
@@ -2652,6 +2759,13 @@ function initLanding() {
       D.cornerRadiusMultiplier = 0.5;   // landing previews only: fully-rounded ends so tiny rings never look blocky
       scrVis.innerHTML = blackPolesHTML(D);
     }));
+  }
+  /* Seed 'land' as the base of navHistory so leaving the landing page always
+     leaves something to pop — the back gesture from any entry screen returns
+     here. When navHistory is down to ['land'], a further back swipe finds it
+     empty afterward and lets the browser exit the tool naturally. */
+  if (navHistory.length === 0 || navHistory[navHistory.length-1] !== 'land') {
+    navHistory = ['land'];
   }
 }
 
@@ -4347,6 +4461,9 @@ function renderCart() {
   const actions = document.getElementById('cart-actions');
   if (!grid) return;
   const cart = getCart();
+
+  // Single-pair mobile layout: center + enlarge the lone card (see CSS).
+  grid.classList.toggle('cart-single', cart.length === 1);
 
   if (!cart.length) {
     grid.innerHTML = `<div class="cart-empty">
