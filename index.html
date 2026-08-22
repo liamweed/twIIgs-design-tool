@@ -1458,16 +1458,32 @@ body {
   }
   #s-cart #cart-grid .cart-card .cart-edit:active { background: none; color: var(--ink); }
 
-  /* Single pair in the basket: center it and enlarge to ~1.5× the normal card
-     height, keeping the "Add another pair" slot visible below (grid scrolls if
-     the two together exceed the screen). */
-  #s-cart #cart-grid.cart-single { justify-items: center; }
-  #s-cart #cart-grid.cart-single .cart-card {
-    width: 62%; max-width: 300px;
-    height: 128vw; max-height: 620px;   /* ≈1.5× the 85.5vw / 495px picker card */
+  /* Single pair in the basket: show BOTH the pole card and the "Add another pair"
+     card on screen without scrolling. The grid fills the space the nav + action
+     bar leave, then splits it 60% pole / 40% add card with the standard 8px gap.
+     Each preview scales to fit its card via szForEl(). */
+  #s-cart #cart-grid.cart-single {
+    flex: 1; min-height: 0;
+    align-content: stretch;
+    grid-template-rows: 3fr 2fr;   /* pole card 60%, add card 40% of available height */
+    justify-items: center;
   }
+  #s-cart #cart-grid.cart-single .cart-card,
   #s-cart #cart-grid.cart-single .cart-add-card {
     width: 62%; max-width: 300px;
+    height: auto; max-height: none;
+    align-self: stretch; min-height: 0;
+  }
+
+  /* 2+ pairs in the basket: a 2-column grid exactly like the style picker cards,
+     with the "Add another pair" card sharing the same grid. Scrolls if it
+     overflows (card-screen-body keeps overflow-y:auto). */
+  #s-cart #cart-grid.cart-multi {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  #s-cart #cart-grid.cart-multi .cart-add-card {
+    height: 85.5vw; max-height: 495px;   /* match the pole cards so grid rows align */
   }
 }
 .cart-remove {
@@ -2739,7 +2755,9 @@ function initLanding() {
     /* Double rAF so the card is fully painted and at its final height before we
        measure; the stored D is then reused for every cycle (no re-measure). */
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      const D = scaleD(szForEl(styleVis), isMobile() ? 1.3 : 1.15);   // landing card: 15% larger on desktop, smaller on mobile
+      let D = scaleD(szForEl(styleVis), isMobile() ? 1.3 : 1.15);   // landing card: 15% larger on desktop, smaller on mobile
+      // Mobile: cap ring height at 7px so all 41 rings + shaft fit the card without clipping.
+      if (isMobile() && D.h > 7) D = scaleD(D, 7 / D.h);
       D.cornerRadiusMultiplier = 0.5;   // landing previews only: fully-rounded ends so tiny rings never look blocky
       const draw = idx => `<div class="poles-wrap">${buildPolesFromPattern(PATTERNS[idx].defaultPalette, idx, [], D)}</div>`;
       styleVis.innerHTML = draw(0);
@@ -2755,7 +2773,9 @@ function initLanding() {
   if (scrVis) {
     /* Double rAF so the container has its final dimensions before measuring */
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      const D = scaleD(szForEl(scrVis), isMobile() ? 1.3 : 1.15);   // landing card: 15% larger on desktop, smaller on mobile
+      let D = scaleD(szForEl(scrVis), isMobile() ? 1.3 : 1.15);   // landing card: 15% larger on desktop, smaller on mobile
+      // Mobile: cap ring height at 7px so all 41 rings + shaft fit the card without clipping.
+      if (isMobile() && D.h > 7) D = scaleD(D, 7 / D.h);
       D.cornerRadiusMultiplier = 0.5;   // landing previews only: fully-rounded ends so tiny rings never look blocky
       scrVis.innerHTML = blackPolesHTML(D);
     }));
@@ -3307,7 +3327,7 @@ function updateActiveColorBar() {
       const slot = computeSlots().find(s=>s.slot===S.activeSlot);
       sw.style.background = slot ? slot.hex : 'transparent';
       lbl.textContent = slot ? slot.label : 'Color slot';
-      hint.textContent = 'pick a color to apply';
+      hint.textContent = 'tap a color to swap';
     }
     return;
   }
@@ -4463,7 +4483,9 @@ function renderCart() {
   const cart = getCart();
 
   // Single-pair mobile layout: center + enlarge the lone card (see CSS).
+  // 2+ pairs: 2-column grid matching the style picker (see CSS).
   grid.classList.toggle('cart-single', cart.length === 1);
+  grid.classList.toggle('cart-multi', cart.length >= 2);
 
   if (!cart.length) {
     grid.innerHTML = `<div class="cart-empty">
