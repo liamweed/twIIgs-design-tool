@@ -444,7 +444,7 @@ body {
   font-size: 0.62rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
   background: var(--ink); color: #fff;
   border: none; border-radius: 5px;
-  padding: 6px 10px; min-height: 30px; cursor: pointer;
+  padding: 6px 12px; min-height: 44px; min-width: 44px; cursor: pointer;
   box-shadow: 0 2px 8px rgba(0,0,0,0.25);
   touch-action: manipulation;
 }
@@ -3962,9 +3962,24 @@ function refreshPoles() {
     <div class="pole-col"><div class="pole-lbl">Pole 1</div>${buildPoleHTML(S.p1,D,'p1',true)}</div>
     <div class="pole-col"><div class="pole-lbl">Pole 2</div>${buildPoleHTML(S.p2,D,'p2',true)}</div>
   </div>
-  <button class="zoom-reset-btn" onclick="resetZoom()" aria-label="Reset zoom">⤢ Reset</button>
+  <button class="zoom-reset-btn" id="zoom-reset-btn" aria-label="Reset zoom">⤢ Reset</button>
   <button class="bg-toggle" id="bg-toggle" onclick="toggleStageBg(event)" title="Toggle background" aria-label="Toggle stage background">◐</button>`;
   applyZoom();                       // re-apply any active pinch/double-tap zoom to the new poles-wrap
+  // Wire the (re-created) reset-zoom button. stopPropagation() keeps the tap from
+  // being swallowed by the poles-stage touch handlers (which preventDefault the
+  // synthetic click), so it activates on a single tap instead of two.
+  const zoomResetBtn = document.getElementById('zoom-reset-btn');
+  if (zoomResetBtn) {
+    zoomResetBtn.addEventListener('touchend', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      resetZoom();
+    }, { passive: false });
+    zoomResetBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      resetZoom();
+    });
+  }
   applyStageBg();                    // re-anchor the (re-created) background toggle + stage color
   if (S.slotMode) buildSlotRow();   // keep slot swatches/weights in sync with ring colors & ledges
 }
@@ -4078,7 +4093,7 @@ async function doShare() {
     try {
       await navigator.share({
         title: 'My twIIgs Custom Poles',
-        text: 'Check out my custom ski pole design',
+        text: 'Check out my custom twIIgs design',
         url: url
       });
       return; // native share handled it
@@ -4195,7 +4210,7 @@ async function shareOptionsNative() {
     try {
       await navigator.share({
         title: 'My twIIgs Custom Poles',
-        text: 'Check out my custom ski pole design',
+        text: 'Check out my custom twIIgs design',
         url: shareURL()
       });
     } catch(err) {
