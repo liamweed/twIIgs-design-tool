@@ -1648,6 +1648,13 @@ body {
 .bg-toggle.dark { background: #2C2C2C; color: #fff; border-color: #2C2C2C; }
 
 </style>
+<script type="text/javascript">
+    (function(c,l,a,r,i,t,y){
+        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", "y6x74kauyb");
+</script>
 </head>
 <body>
 
@@ -2114,7 +2121,6 @@ const PALETTES = [
   ['#b6e0f7','#4f4192','#f20927','#fffae0'],
   ['#b6e0f7','#4f4192','#b3e14f','#00798e'],
   ['#f20927','#fff382','#1d3055','#fffae0'],
-  ['#f20927','#aa3e19','#1d3055','#000000'],
   ['#9b103b','#b6e0f7','#f13070','#fff382'],
   ['#a2d5a4','#b3e14f','#384939'],
   ['#b6e0f7','#00798e','#1d3055'],
@@ -2914,8 +2920,9 @@ function palSqHTMLAll() {
 /* ══════════════════════════════════════════════════
    ENTRY SCREENS
    ══════════════════════════════════════════════════ */
-/* STEP 1 — palette picker. "Use all colors" (E.palette=null) first, then all
-   58 palettes as scrollable cards in the existing palette-card style. */
+/* STEP 1 — palette picker. "Use all colors" (E.palette=null) first, then
+   "Make your own palette", then all 58 palettes as scrollable cards in the
+   existing palette-card style. */
 function initChoosePalette() {
   const grid = document.getElementById('cs-pal-grid');
   if (!grid) return;
@@ -2933,7 +2940,7 @@ function initChoosePalette() {
       <div class="flow-card-visual"><div class="cp-plus-icon">+</div></div>
       <div class="flow-card-footer style-name"><div class="flow-card-label">Make your own palette</div></div>
     </div>`;
-  grid.innerHTML = allCard + palCards + makeCard;
+  grid.innerHTML = allCard + makeCard + palCards;
 }
 
 /* ══════════════════════════════════════════════════
