@@ -975,6 +975,41 @@ body {
   .ov-box { border-radius: 18px; padding-bottom: 32px; }
 }
 
+/* Save/Share options — bottom sheet on mobile, centered modal on desktop */
+#ov-share-options {
+  display: none; position: fixed; inset: 0; z-index: 10000;
+  background: rgba(0,0,0,0.5);
+  align-items: flex-end; justify-content: center;
+}
+.share-options-box {
+  position: relative; background: #fff; width: 100%;
+  padding: 24px; border-radius: 16px 16px 0 0;
+  box-shadow: var(--shl);
+  transform: translateY(100%); transition: transform 0.25s ease;
+}
+#ov-share-options.active .share-options-box { transform: translateY(0); }
+.share-options-title {
+  font-family: 'Plus Jakarta Sans', sans-serif; font-size: 0.75rem;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--lite); margin-bottom: 16px;
+}
+.share-options-x {
+  position: absolute; top: 10px; right: 14px;
+  background: none; border: none; cursor: pointer;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.4rem; line-height: 1; color: var(--lite);
+}
+@media (hover:hover) { .share-options-x:hover { color: var(--ink); } }
+.share-options-box .btn { width: 100%; }
+.share-options-box .btn + .btn { margin-top: 10px; }
+@media (min-width:740px) {
+  #ov-share-options { align-items: center; padding: 20px; }
+  .share-options-box {
+    max-width: 320px; border-radius: 16px;
+    transform: translateY(16px);
+  }
+}
+
 /* ══════════════════════════════════════════════
    DESKTOP RECOMMENDATION MODAL (item 1 — shown once per session
    via JS on load when width < 740px)
@@ -1851,7 +1886,7 @@ body {
 
       <!-- Action bar — pinned to bottom -->
       <div class="cust-action-bar">
-        <button class="btn ghost share" onclick="doShare()">Save/Share</button>
+        <button class="btn ghost share" onclick="openShareOptions()">Save/Share</button>
         <button class="btn accent order" onclick="doOrder()">Add to basket →</button>
       </div>
     </div>
@@ -1981,6 +2016,18 @@ body {
     <button class="btn ghost" style="width:100%;" onclick="designEmailLink()">Email me the link</button>
   </div>
 </div>
+
+<!-- Customiser "Save/Share" → options panel (email / copy / native share) -->
+<div id="ov-share-options" onclick="if(event.target===this)closeShareOptions()">
+  <div class="share-options-box">
+    <button class="share-options-x" onclick="closeShareOptions()" aria-label="Close">✕</button>
+    <div class="share-options-title">Save or Share</div>
+    <button class="btn ghost" onclick="shareOptionsEmail()">Email me the link</button>
+    <button class="btn ghost" onclick="shareOptionsCopy()">Copy link</button>
+    <button class="btn accent" id="share-native-btn" style="display:none;" onclick="shareOptionsNative()">Share</button>
+  </div>
+</div>
+<script>if(navigator.share){var _snb=document.getElementById('share-native-btn');if(_snb)_snb.style.display='';}</script>
 
 <div class="spacing-popup" id="spacing-popup" onclick="if(event.target===this)closeSpacingPopup()">
   <div class="spacing-popup-box">
@@ -4097,6 +4144,65 @@ async function designCopyLink() {
 function designEmailLink() {
   closeDesignSaveOptions();
   openSave();   // design-mode email overlay (title "Save Your Design")
+}
+
+/* ── Save/Share options panel ── */
+function openShareOptions() {
+  const ov = document.getElementById('ov-share-options');
+  if (ov) {
+    ov.style.display = 'flex';
+    requestAnimationFrame(() =>
+      ov.classList.add('active'));
+  }
+}
+function closeShareOptions() {
+  const ov = document.getElementById('ov-share-options');
+  if (ov) {
+    ov.classList.remove('active');
+    setTimeout(() => ov.style.display = 'none', 200);
+  }
+}
+/* Email me the link → capture email + Klaviyo Design Saved flow */
+function shareOptionsEmail() {
+  closeShareOptions();
+  openSave();
+}
+/* Copy link → clipboard + toast */
+async function shareOptionsCopy() {
+  const url = shareURL();
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(url);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    showToast('URL Copied!');
+  } catch(err) {
+    showToast('URL Copied!');
+  }
+  closeShareOptions();
+}
+/* Share (mobile only) → native share sheet */
+async function shareOptionsNative() {
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'My twIIgs Custom Poles',
+        text: 'Check out my custom ski pole design',
+        url: shareURL()
+      });
+    } catch(err) {
+      // user cancelled or share failed — nothing to do
+    }
+  }
+  closeShareOptions();
 }
 /* ══════════════════════════════════════════════════
    CART — session-persistent, in-tool cart of pole pairs
