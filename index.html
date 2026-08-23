@@ -2329,6 +2329,7 @@ const S = {
   p2:          new Array(N).fill(BLACK),
   big:         new Set(DEF_BIG),
   history:     [],
+  redoStack:   [],
   activeColor: null,   // hex string of currently selected paint color
   pendingTool: null,   // 'all-one' (one-shot, waits for a color pick)
   fillMode:    false,  // true = Fill toggle is ON; taps flood matching colors
@@ -3130,6 +3131,7 @@ function resetState() {
   S.p2 = new Array(N).fill(BLACK);
   S.big = new Set(DEF_BIG);
   S.history = [];
+  S.redoStack = [];
   S.activeColor = null;
   S.pendingTool = null;
   S.fillMode = false;
@@ -3944,14 +3946,35 @@ function pushHistory() {
     slotP1: S.slotP1?[...S.slotP1]:null, slotP2: S.slotP2?[...S.slotP2]:null
   });
   if (S.history.length>30) S.history.shift();
+  S.redoStack = [];   // any new action invalidates the redo history
   updateUndoBtn();
 }
 function doUndo() {
   if (!S.history.length) return;
   turnOffFill(); turnOffAdjustLedges();
+  // snapshot current state so it can be re-applied via redo
+  S.redoStack.push({
+    p1:[...S.p1], p2:[...S.p2], big:new Set(S.big),
+    slotP1: S.slotP1?[...S.slotP1]:null, slotP2: S.slotP2?[...S.slotP2]:null
+  });
   const prev=S.history.pop();
   S.p1=prev.p1; S.p2=prev.p2; S.big=prev.big;
   S.slotP1=prev.slotP1; S.slotP2=prev.slotP2;
+  S.pendingTool=null;
+  refreshPoles(); updateRingInfo(); updateUndoBtn(); updateActiveColorBar();
+}
+function doRedo() {
+  if (!S.redoStack.length) return;
+  turnOffFill(); turnOffAdjustLedges();
+  // push current state to undo history (without clearing the redo stack)
+  S.history.push({
+    p1:[...S.p1], p2:[...S.p2], big:new Set(S.big),
+    slotP1: S.slotP1?[...S.slotP1]:null, slotP2: S.slotP2?[...S.slotP2]:null
+  });
+  if (S.history.length>30) S.history.shift();
+  const next=S.redoStack.pop();
+  S.p1=next.p1; S.p2=next.p2; S.big=next.big;
+  S.slotP1=next.slotP1; S.slotP2=next.slotP2;
   S.pendingTool=null;
   refreshPoles(); updateRingInfo(); updateUndoBtn(); updateActiveColorBar();
 }
@@ -5125,6 +5148,11 @@ document.addEventListener('keydown', function(e) {
     if (!document.getElementById('s-cust').classList.contains('active')) return;
     e.preventDefault();
     doUndo();
+  }
+  if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+    if (!document.getElementById('s-cust').classList.contains('active')) return;
+    e.preventDefault();
+    doRedo();
   }
 });
 
