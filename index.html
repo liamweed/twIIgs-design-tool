@@ -4017,8 +4017,49 @@ function showToast(message) {
 }
 /* Save/Share — open the small options panel (Copy link / Email me the link).
    No copy or toast happens here. */
-function doShare() {
-  document.getElementById('design-save-options').classList.add('open');
+async function doShare() {
+  const url = shareURL();
+
+  // Update OG meta tags
+  document.querySelector('meta[property="og:url"]')
+    ?.setAttribute('content', url);
+  document.querySelector('meta[name="twitter:url"]')
+    ?.setAttribute('content', url);
+
+  // Use native share sheet on mobile if available
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: 'My twIIgs Custom Poles',
+        text: 'Check out my custom ski pole design',
+        url: url
+      });
+      return; // native share handled it
+    } catch(err) {
+      // User cancelled or share failed
+      // Fall through to clipboard copy
+      if (err.name === 'AbortError') return;
+    }
+  }
+
+  // Desktop fallback — copy to clipboard
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(url);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = url;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    showToast('URL Copied!');
+  } catch(err) {
+    showToast('URL Copied!');
+  }
 }
 function closeDesignSaveOptions() {
   document.getElementById('design-save-options').classList.remove('open');
