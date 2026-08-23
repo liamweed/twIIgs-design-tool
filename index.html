@@ -1144,7 +1144,7 @@ body {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   /* Item 3: panel expands to fit all content — no max-height cap, height auto, and
-     overflow visible so the hint (top) and LEDGES x/6 counter + learn link (bottom)
+     overflow visible so the hint (top) and LEDGES x/5 counter + learn link (bottom)
      aren't clipped; smaller hint text so it fits without wrapping. */
   .ledge-brush-panel {
     height: auto; max-height: none;
@@ -1155,7 +1155,7 @@ body {
   .ledge-brush-hint             { font-size: 0.6rem; }
   .ledge-spacing-learn          { margin-top: 6px; }
   /* Shorter shape-selector cards on mobile — smaller icons, RING/LEDGE labels kept
-     below, cards still side by side, and the "LEDGES 0/6" counter stays visible. */
+     below, cards still side by side, and the "LEDGES 0/5" counter stays visible. */
   .ledge-brush-opt              { max-height: 80px; padding: 8px 14px; gap: 4px; min-width: 0; }
   .ledge-brush-shape            { height: auto; }
   .ledge-brush-shape .ring-svg  { max-width: 40px; height: auto; }
@@ -2337,7 +2337,7 @@ PATTERNS.forEach(p => { ['p1','p2'].forEach(k => { while(p[k].length<41)p[k].pus
    ══════════════════════════════════════════════════ */
 const N         = 41;
 const DEF_BIG   = new Set([0,10,19,28,34,40]);
-const MAX_LEDGE = 6;
+const MAX_LEDGE = 5;
 const BLACK     = '#000000';
 const CAP_H_R   = 0.38;
 
