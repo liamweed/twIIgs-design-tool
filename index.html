@@ -1649,11 +1649,31 @@ body {
 
 </style>
 <script type="text/javascript">
+(function() {
+  fetch('https://ipapi.co/json/')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.country_code === 'US') {
+        initClarity();
+      }
+    })
+    .catch(function() {
+      // If geolocation check fails, don't fire Clarity
+    });
+
+  function initClarity() {
     (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-    })(window, document, "clarity", "script", "y6x74kauyb");
+      c[a]=c[a]||function(){
+        (c[a].q=c[a].q||[]).push(arguments)
+      };
+      t=l.createElement(r);
+      t.async=1;
+      t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];
+      y.parentNode.insertBefore(t,y);
+    })(window,document,"clarity","script","y6x74kauyb");
+  }
+})();
 </script>
 </head>
 <body>
