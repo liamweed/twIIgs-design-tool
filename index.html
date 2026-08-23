@@ -1431,25 +1431,26 @@ body {
    cards, scrolling instead of squeezing to fit. Full-width cards give the pole
    preview extra room, so make each card taller to use it. */
 @media (max-width: 739px) {
-  #s-cart .card-screen-body { overflow-y: auto; -webkit-overflow-scrolling: touch; }
-  #s-cart #cart-grid {
-    grid-template-columns: 1fr;   /* single column, stacked vertically */
-    flex: none; align-content: start;
-    grid-auto-rows: auto;         /* natural card height; grid scrolls */
+  /* The action bar is pinned to the bottom of the viewport (fixed-bar rules at
+     the end of this block). The card body fills the space between the nav and
+     that bar; its padding-bottom reserves exactly the bar's measured height
+     (set from JS as --cart-bar-h) so no card ever hides behind it. */
+  #s-cart .card-screen-body {
+    overflow: hidden;
+    padding-bottom: var(--cart-bar-h, 176px);
   }
-  /* Basket pole cards match the style picker (#s-e-style) card exactly on mobile:
-     same height, and (via .flow-card) same border, radius, background, shadow. */
-  #s-cart #cart-grid .flow-card {
-    height: 85.5vw; max-height: 495px;
-    align-self: start;
+  /* 3+ pairs: the card body scrolls (class toggled in renderCart). */
+  #s-cart .card-screen-body.cart-scroll {
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
   }
+
+  /* "Add another pair" lives only in the fixed bottom bar on mobile — never in
+     the card grid. */
+  #s-cart #cart-grid .cart-add-card { display: none; }
+
   /* Pole preview padded/centered exactly like the style picker's .flow-card-visual
      (undo the desktop cart-card-visual padding-top:18px override). */
   #s-cart #cart-grid .cart-card-visual { padding: 10px 8px 6px; }
-  /* "Add another pair" is a permanent action-bar button on mobile, so drop its
-     empty-slot card from the grid entirely (it stays in the grid on desktop). */
-  #s-cart #cart-grid .cart-add-card { display: none; }
-  .cart-add-btn { display: block; }
 
   /* Edit button sits at the bottom exactly like the style picker's centered
      style-name label — same font size/style, stripped of its button chrome. */
@@ -1461,27 +1462,62 @@ body {
   }
   #s-cart #cart-grid .cart-card .cart-edit:active { background: none; color: var(--ink); }
 
-  /* Single pair in the basket: the lone pole card fills the space the nav +
-     action bar leave, centered. "Add another pair" now lives in the action bar,
-     so the card reclaims that room — height 75% of the grid is a 25% increase on
-     the previous 60% split. The preview scales to fit via szForEl(). */
+  /* 1 pair: single full-width card that fills all the available height between
+     the nav and the fixed bottom bar. szForEl() scales the poles to fit. */
   #s-cart #cart-grid.cart-single {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
     flex: 1; min-height: 0;
-    align-content: center;
-    justify-items: center;
+    align-content: stretch;
   }
   #s-cart #cart-grid.cart-single .cart-card {
-    width: 62%; max-width: 300px;
-    height: 75%; max-height: none;
-    align-self: center; min-height: 0;
+    width: 100%; max-width: none;
+    height: auto; max-height: none;
+    align-self: stretch; min-height: 0;
   }
 
-  /* 2+ pairs in the basket: a 2-column grid exactly like the style picker cards.
-     Scrolls if it overflows (card-screen-body keeps overflow-y:auto). */
-  #s-cart #cart-grid.cart-multi {
+  /* 2 pairs: two cards side by side (1fr 1fr), each filling the full available
+     height. No scroll. */
+  #s-cart #cart-grid.cart-two {
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+    flex: 1; min-height: 0;
+    align-content: stretch;
     gap: 8px;
   }
+  #s-cart #cart-grid.cart-two .cart-card {
+    height: auto; max-height: none;
+    align-self: stretch; min-height: 0;
+  }
+
+  /* 3+ pairs: smaller cards (≈ style-picker size) in a 2-col grid that scrolls
+     under the pinned bottom bar. */
+  #s-cart #cart-grid.cart-many {
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: auto;
+    align-content: start;
+    flex: none; min-height: 0;
+    gap: 8px;
+  }
+  #s-cart #cart-grid.cart-many .cart-card {
+    height: 97.5vw; max-height: 550px;
+    align-self: start;
+  }
+
+  /* ── Fixed bottom action bar (mobile only) ── */
+  #s-cart .cart-actions {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    flex-direction: column; gap: 8px;
+    background: #fff;
+    padding: 8px 12px;
+    padding-bottom: calc(8px + var(--safe-b));
+    z-index: 100;
+  }
+  #s-cart .cart-actions .btn {
+    flex: none; width: 100%; min-height: 48px;
+  }
+  /* "Add another pair" shows only in the mobile fixed bar (hidden on desktop). */
+  #s-cart .cart-actions .cart-add-mobile { display: inline-flex; }
 }
 .cart-remove {
   position: absolute; top: 8px; right: 8px; z-index: 5;
@@ -1536,9 +1572,9 @@ body {
   background: var(--bg);
 }
 .cart-actions .btn { min-height: 48px; }
-/* "Add another pair" lives in the grid on desktop; on mobile it moves into the
-   action bar (shown via the ≤739px rule below). Hidden by default. */
-.cart-add-btn { display: none; }
+/* The bar's "Add another pair" button is mobile-only; on desktop that action
+   lives as a card in the grid, so hide it here (shown again ≤739px). */
+.cart-add-mobile { display: none; }
 @media (min-width: 600px) {
   .cart-actions { flex-direction: row; }
   .cart-actions .btn { flex: 1; }
@@ -1838,7 +1874,7 @@ body {
     <div class="card-grid-3" id="cart-grid"></div>
   </div>
   <div class="cart-actions" id="cart-actions">
-    <button class="btn ghost cart-add-btn" id="cart-add-btn" onclick="cartAddAnother()">+ Add another pair</button>
+    <button class="btn ghost cart-add-mobile" onclick="cartAddAnother()">Add another pair</button>
     <button class="btn ghost cart-save" onclick="openBasketSaveOptions()">Save your designs</button>
     <button class="btn accent cart-checkout" onclick="cartCheckout(this)">Continue to checkout →</button>
   </div>
@@ -2109,7 +2145,7 @@ const PATTERNS = [
     p2: [3,9,14,9,14,9,14,9,14,9,3,9,14,9,14,9,14,9,14,3,9,14,9,14,9,14,9,14,3,9,14,9,14,9,3,9,14,9,14,9,3]
   },
   {
-    name: 'Wind Drift',
+    name: 'Drift',
     defaultPalette: 0,
     useColors: true,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
@@ -2117,7 +2153,7 @@ const PATTERNS = [
     p2: [14,1,1,1,1,1,1,1,1,1,14,1,1,1,1,1,1,1,1,14,1,1,1,1,1,1,1,1,14,1,1,1,1,1,14,1,1,1,1,1,14]
   },
   {
-    name: 'Garden Low',
+    name: 'Garden',
     defaultPalette: 0,
     useColors: true,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
@@ -2125,7 +2161,7 @@ const PATTERNS = [
     p2: [12,13,13,13,4,4,4,13,13,13,12,13,13,4,4,4,4,13,13,12,13,13,13,4,4,13,13,13,12,13,13,4,13,13,12,13,13,4,13,13,12]
   },
   {
-    name: 'Alpenglow',
+    name: 'Glow',
     defaultPalette: 0,
     useColors: true,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
@@ -2158,7 +2194,7 @@ const PATTERNS = [
     p2: [2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10]
   },
   {
-    name: 'Red Mountain 3',
+    name: 'Red Mtn',
     defaultPalette: 0,
     useColors: true,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
@@ -2182,7 +2218,7 @@ const PATTERNS = [
     p2: [0,0,0,14,10,10,14,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,14,0,0,0,0,0,0,0,0,0]
   },
   {
-    name: 'T Grove',
+    name: 'Grove',
     defaultPalette: 0,
     useColors: true,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
@@ -2206,7 +2242,7 @@ const PATTERNS = [
     p2: [0,0,0,7,6,5,4,8,0,0,0,0,0,0,8,8,8,8,0,0,0,0,8,8,0,0,0,0,0,0,8,0,0,0,0,0,0,8,0,0,0]
   },
   {
-    name: 'Dusk Patrol',
+    name: 'Dusk',
     defaultPalette: 0,
     useColors: true,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
@@ -4482,11 +4518,18 @@ function renderCart() {
   const actions = document.getElementById('cart-actions');
   if (!grid) return;
   const cart = getCart();
+  const body = grid.closest('.card-screen-body');
 
-  // Single-pair mobile layout: center + enlarge the lone card (see CSS).
-  // 2+ pairs: 2-column grid matching the style picker (see CSS).
+  // Save button label follows the basket count (mobile + desktop).
+  const saveBtn = actions?.querySelector('.cart-save');
+  if (saveBtn) saveBtn.textContent = cart.length === 1 ? 'Save your design' : 'Save your designs';
+
+  // Mobile card layouts (see CSS): 1 pair fills the screen full-width; 2 pairs
+  // sit side by side filling the height; 3+ shrink to a scrolling 2-col grid.
   grid.classList.toggle('cart-single', cart.length === 1);
-  grid.classList.toggle('cart-multi', cart.length >= 2);
+  grid.classList.toggle('cart-two',    cart.length === 2);
+  grid.classList.toggle('cart-many',   cart.length >= 3);
+  if (body) body.classList.toggle('cart-scroll', cart.length >= 3);
 
   if (!cart.length) {
     grid.innerHTML = `<div class="cart-empty">
@@ -4498,10 +4541,18 @@ function renderCart() {
   }
   if (actions) actions.style.display = '';
 
-  // Mobile-only "Add another pair" action-bar button (CSS shows it ≤739px). Hide
-  // it once the basket is full; the grid's own add-card slot is desktop-only.
-  const addBtn = document.getElementById('cart-add-btn');
-  if (addBtn) addBtn.style.display = cart.length < CART_MAX ? '' : 'none';
+  // Mobile: the action bar is position:fixed, so it no longer reserves space in
+  // the flex column. Measure its real height and hand it to the CSS so the card
+  // body can pad its bottom by exactly that amount — cards then fill precisely
+  // 100dvh − nav − bar. Desktop clears the var (bar is in normal flow there).
+  const cartScreen = document.getElementById('s-cart');
+  if (cartScreen) {
+    if (isMobile() && actions) {
+      cartScreen.style.setProperty('--cart-bar-h', actions.getBoundingClientRect().height + 'px');
+    } else {
+      cartScreen.style.removeProperty('--cart-bar-h');
+    }
+  }
 
   let html = '';
   cart.forEach((item, i) => {
@@ -4888,6 +4939,8 @@ window.addEventListener('resize',()=>{
   clearTimeout(_rz);
   // Recompute the explicit mobile stage height (desktop: clears it & returns).
   setPolesStageHeight();
+  // Cart screen: re-measure the fixed bottom bar and re-fit the pole previews.
+  if (document.getElementById('s-cart')?.classList.contains('active')) renderCart();
   /* On mobile the controls-panel ResizeObserver handles in-editor re-fitting more
      precisely, so skip the debounced resize refresh there. Desktop unchanged. */
   if (window.innerWidth <= 739) { refreshPoles(); return; }
