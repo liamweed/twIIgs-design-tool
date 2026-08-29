@@ -275,6 +275,20 @@ body {
 .flow-card-footer.style-name .flow-card-label {
   font-size: clamp(0.78rem, 2.4vw, 1.05rem); letter-spacing: 0.08em;
 }
+/* Style-card ledge count chip (informational badge, top-right of each card) */
+.ledge-chip {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  background: rgba(0,0,0,0.08);
+  color: var(--ink);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 999px;
+  pointer-events: none;
+}
 .flow-card-label {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: clamp(0.9rem, 2.8vw, 1.2rem);
@@ -2059,7 +2073,7 @@ body {
 <div class="spacing-popup" id="spacing-popup" onclick="if(event.target===this)closeSpacingPopup()">
   <div class="spacing-popup-box">
     <button class="save-popup-x" onclick="closeSpacingPopup()" aria-label="Close">✕</button>
-    <p class="spacing-popup-text">The ledges are wider than the rings, which creates the points of leverage along the pole. The default configuration is what we've found works best for most people, but you can move them to wherever feels right.</p>
+    <p class="spacing-popup-text">The ledges are wider than the rings, which creates the points of leverage along the pole. The default configurations are what we've found works best for most people, but you can move them to wherever feels right. More ledges on the pole means more points of leverage.</p>
     <p class="spacing-popup-text">If you want to fit the spaces to your hand size exactly, rings and ledges are each 12mm tall.</p>
     <p class="spacing-popup-text">If you change your mind after your poles arrive, the rings and ledges slide off and reposition by hand, so no stress!</p>
   </div>
@@ -2198,6 +2212,7 @@ const PATTERNS = [
     name: 'Highcreek',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     p1: [10,10,10,9,8,8,8,9,10,10,10,10,10,9,8,8,9,10,10,10,10,10,9,8,8,9,10,10,10,10,9,8,9,10,10,10,9,8,9,10,10],
     p2: [10,10,10,9,8,8,8,9,10,10,10,10,10,9,8,8,9,10,10,10,10,10,9,8,8,9,10,10,10,10,9,8,9,10,10,10,9,8,9,10,10]
   },
@@ -2205,6 +2220,7 @@ const PATTERNS = [
     name: '50/50',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
     p1: Array(41).fill(7),
     p2: Array(41).fill(8)
@@ -2213,22 +2229,16 @@ const PATTERNS = [
     name: 'Naomi',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
     p1: [3,9,14,9,14,9,14,9,14,9,3,9,14,9,14,9,14,9,14,3,9,14,9,14,9,14,9,14,3,9,14,9,14,9,3,9,14,9,14,9,3],
     p2: [3,9,14,9,14,9,14,9,14,9,3,9,14,9,14,9,14,9,14,3,9,14,9,14,9,14,9,14,3,9,14,9,14,9,3,9,14,9,14,9,3]
   },
   {
-    name: 'Drift',
-    defaultPalette: 0,
-    useColors: true,
-    colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
-    p1: [14,1,1,1,1,1,1,1,1,1,14,1,1,1,1,1,1,1,1,14,1,1,1,1,1,1,1,1,14,1,1,1,1,1,14,1,1,1,1,1,14],
-    p2: [14,1,1,1,1,1,1,1,1,1,14,1,1,1,1,1,1,1,1,14,1,1,1,1,1,1,1,1,14,1,1,1,1,1,14,1,1,1,1,1,14]
-  },
-  {
     name: 'Garden',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
     p1: [12,13,13,13,4,4,4,13,13,13,12,13,13,4,4,4,4,13,13,12,13,13,13,4,4,13,13,13,12,13,13,4,13,13,12,13,13,4,13,13,12],
     p2: [12,13,13,13,4,4,4,13,13,13,12,13,13,4,4,4,4,13,13,12,13,13,13,4,4,13,13,13,12,13,13,4,13,13,12,13,13,4,13,13,12]
@@ -2237,6 +2247,7 @@ const PATTERNS = [
     name: 'Glow',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
     p1: [1,1,1,7,7,7,6,6,1,1,1,1,7,7,7,6,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,6,1,1,1,1,1,1,1,1,1],
     p2: [1,1,1,7,7,7,6,6,1,1,1,1,7,7,7,6,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,6,1,1,1,1,1,1,1,1,1]
@@ -2245,23 +2256,16 @@ const PATTERNS = [
     name: 'Blocks',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
     p1: [2,2,2,2,2,5,5,5,5,5,5,4,4,4,4,13,13,13,13,13,8,8,8,8,10,10,10,10,10,7,7,7,7,7,7,11,11,11,11,11,11],
     p2: [2,2,2,2,2,5,5,5,5,5,5,4,4,4,4,13,13,13,13,13,8,8,8,8,10,10,10,10,10,7,7,7,7,7,7,11,11,11,11,11,11]
   },
   {
-    name: 'No Ledges',
-    defaultPalette: 0,
-    useColors: true,
-    colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
-    noLedges: true,
-    p1: Array(41).fill(0),
-    p2: Array(41).fill(0)
-  },
-  {
     name: 'Stripes',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
     p1: [2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10],
     p2: [2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10,7,2,5,4,13,8,10]
@@ -2270,6 +2274,7 @@ const PATTERNS = [
     name: 'Red Mtn',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
     p1: [7,7,3,3,8,8,8,3,3,7,7,7,3,3,8,8,8,3,7,7,7,3,3,8,8,8,3,7,7,7,3,8,3,7,7,7,3,8,3,7,7],
     p2: [7,7,3,3,8,8,8,3,3,7,7,7,3,3,8,8,8,3,7,7,7,3,3,8,8,8,3,7,7,7,3,8,3,7,7,7,3,8,3,7,7]
@@ -2278,22 +2283,16 @@ const PATTERNS = [
     name: 'Solstice',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
     p1: [1,1,1,2,2,2,2,2,1,1,1,1,1,10,10,10,10,1,1,1,1,1,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     p2: [1,1,1,2,2,2,2,2,1,1,1,1,1,10,10,10,10,1,1,1,1,1,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
   },
   {
-    name: 'Glide',
-    defaultPalette: 0,
-    useColors: true,
-    colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
-    p1: [0,0,0,14,10,10,14,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,14,0,0,0,0,0,0,0,0,0],
-    p2: [0,0,0,14,10,10,14,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,14,0,0,0,0,0,0,0,0,0]
-  },
-  {
     name: 'Grove',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
     p1: [14,14,13,13,12,12,13,13,13,14,14,14,13,13,12,12,13,13,14,14,14,13,13,12,12,13,13,14,14,14,13,12,13,14,14,14,13,12,13,14,14],
     p2: [14,14,13,13,12,12,13,13,13,14,14,14,13,13,12,12,13,13,14,14,14,13,13,12,12,13,13,14,14,14,13,12,13,14,14,14,13,12,13,14,14]
@@ -2302,6 +2301,7 @@ const PATTERNS = [
     name: 'Graupel',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
     p1: [7,10,10,10,10,10,10,10,10,10,7,10,10,10,10,10,10,10,10,7,10,10,10,10,10,10,10,10,7,10,10,10,10,10,7,10,10,10,10,10,7],
     p2: [12,10,10,10,10,10,10,10,10,10,12,10,10,10,10,10,10,10,10,12,10,10,10,10,10,10,10,10,12,10,10,10,10,10,12,10,10,10,10,10,12]
@@ -2310,24 +2310,81 @@ const PATTERNS = [
     name: 'Sunrise',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
     p1: [0,0,0,7,6,5,4,8,0,0,0,0,0,0,8,8,8,8,0,0,0,0,8,8,0,0,0,0,0,0,8,0,0,0,0,0,0,8,0,0,0],
     p2: [0,0,0,7,6,5,4,8,0,0,0,0,0,0,8,8,8,8,0,0,0,0,8,8,0,0,0,0,0,0,8,0,0,0,0,0,0,8,0,0,0]
   },
   {
-    name: 'Dusk',
-    defaultPalette: 0,
-    useColors: true,
-    colorOrder: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14],
-    p1: [0,0,1,11,11,11,1,0,0,0,0,0,1,11,11,1,0,0,0,0,0,1,11,11,1,0,0,0,0,0,1,11,1,0,0,0,1,11,1,0,0],
-    p2: [0,0,1,11,11,11,1,0,0,0,0,0,1,11,11,1,0,0,0,0,0,1,11,11,1,0,0,0,0,0,1,11,1,0,0,0,1,11,1,0,0]
-  },
-  {
     name: 'Wildflower',
     defaultPalette: 0,
     useColors: true,
+    ledgeCount: 5,
     p1: [6,6,6,11,13,11,13,11,6,6,6,6,6,11,6,6,11,6,6,6,6,6,11,6,6,11,6,6,6,6,6,13,6,6,6,6,6,11,6,6,6],
     p2: [6,6,6,11,13,11,13,11,6,6,6,6,6,11,6,6,11,6,6,6,6,6,11,6,6,11,6,6,6,6,6,13,6,6,6,6,6,11,6,6,6]
+  },
+  {
+    name: 'Mudflower',
+    defaultPalette: 0,
+    useColors: true,
+    ledgeCount: 0,
+    big: new Set([0]),
+    p1: [3,3,3,3,3,3,3,3,13,13,14,4,4,4,4,14,13,13,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+    p2: [3,3,3,3,3,3,3,3,13,13,14,4,4,4,4,14,13,13,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]
+  },
+  {
+    name: 'Anchor',
+    defaultPalette: 0,
+    useColors: true,
+    ledgeCount: 0,
+    big: new Set([0]),
+    p1: [10,1,1,14,14,14,1,1,10,10,10,1,1,14,14,14,1,1,10,10,10,1,1,14,14,14,1,1,10,10,10,1,1,14,14,14,1,1,10,10,10],
+    p2: [10,1,1,14,14,14,1,1,10,10,10,1,1,14,14,14,1,1,10,10,10,1,1,14,14,14,1,1,10,10,10,1,1,14,14,14,1,1,10,10,10]
+  },
+  {
+    name: 'Amber',
+    defaultPalette: 0,
+    useColors: true,
+    ledgeCount: 3,
+    big: new Set([0,11,21,30]),
+    p1: [3,3,3,4,5,5,5,5,4,3,3,3,3,3,4,5,5,5,4,3,3,3,3,3,4,5,5,4,3,3,3,3,3,3,4,5,5,4,3,3,3],
+    p2: [3,3,3,4,5,5,5,5,4,3,3,3,3,3,4,5,5,5,4,3,3,3,3,3,4,5,5,4,3,3,3,3,3,3,4,5,5,4,3,3,3]
+  },
+  {
+    name: 'Rosehip',
+    defaultPalette: 0,
+    useColors: true,
+    ledgeCount: 3,
+    big: new Set([0,11,21,40]),
+    p1: [2,14,14,14,14,14,14,14,14,14,14,2,14,14,14,14,14,14,14,14,14,2,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13],
+    p2: [2,14,14,14,14,14,14,14,14,14,14,2,14,14,14,14,14,14,14,14,14,2,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13]
+  },
+  {
+    name: 'Elderberry',
+    defaultPalette: 0,
+    useColors: true,
+    ledgeCount: 2,
+    big: new Set([0,10,19]),
+    p1: [14,14,10,8,11,10,1,8,10,14,14,14,7,7,14,14,7,7,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14],
+    p2: [14,14,10,11,1,10,8,11,10,14,14,14,7,7,14,14,7,7,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14,14]
+  },
+  {
+    name: 'Prism',
+    defaultPalette: 0,
+    useColors: true,
+    ledgeCount: 2,
+    big: new Set([0,10,19]),
+    p1: [10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,7,6,2,3,5,4,10,10,10,10,10,10,10],
+    p2: [10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,12,13,14,9,8,11,10,10,10,10,10,10,10]
+  },
+  {
+    name: 'Boreas',
+    defaultPalette: 0,
+    useColors: true,
+    ledgeCount: 4,
+    big: new Set([0,10,22,33,40]),
+    p1: [8,8,8,6,13,13,13,6,8,8,8,8,8,6,6,6,6,6,6,6,8,8,8,8,8,6,6,6,6,6,6,8,8,8,8,6,6,6,6,8,8],
+    p2: [8,8,8,9,13,13,13,9,8,8,8,8,8,9,9,9,9,9,9,9,8,8,8,8,8,9,9,9,9,9,9,8,8,8,8,9,9,9,9,8,8]
   }
 ];
 PATTERNS.forEach(p => { ['p1','p2'].forEach(k => { while(p[k].length<41)p[k].push(0); p[k]=p[k].slice(0,41); }); });
@@ -2585,7 +2642,7 @@ function styleColorFor(pat, palIdx, recolor, palHexOverride) {
 function buildPolesFromPattern(palIdx, patIdx, sc, D, recolor = false, palHexOverride = null) {
   const pat = PATTERNS[patIdx];
   const resolve = styleColorFor(pat, palIdx, recolor, palHexOverride);
-  const bigSet = pat.noLedges ? new Set([0]) : (pat.ledges ? new Set(pat.ledges) : DEF_BIG);
+  const bigSet = pat.noLedges ? new Set([0]) : (pat.big ? new Set(pat.big) : (pat.ledges ? new Set(pat.ledges) : DEF_BIG));
   const buildStatic = arr => {
     let r='';
     arr.forEach((si,i) => {
@@ -2869,7 +2926,7 @@ function initLanding() {
       let D = scaleD(szForEl(styleVis), isMobile() ? 1.3 : 1.15);   // landing card: 15% larger on desktop, smaller on mobile
       // Mobile: cap ring height at 7px so all 41 rings + shaft fit the card without clipping.
       if (isMobile() && D.h > 7) D = scaleD(D, 7 / D.h);
-      D.cornerRadiusMultiplier = 0.5;   // landing previews only: fully-rounded ends so tiny rings never look blocky
+      D.cornerRadiusMultiplier = 0.35;   // match the customiser/style-picker rounding (rx = h·0.35), not a full pill
       const draw = idx => `<div class="poles-wrap">${buildPolesFromPattern(PATTERNS[idx].defaultPalette, idx, [], D)}</div>`;
       styleVis.innerHTML = draw(0);
       const render = () => {
@@ -2887,7 +2944,7 @@ function initLanding() {
       let D = scaleD(szForEl(scrVis), isMobile() ? 1.3 : 1.15);   // landing card: 15% larger on desktop, smaller on mobile
       // Mobile: cap ring height at 7px so all 41 rings + shaft fit the card without clipping.
       if (isMobile() && D.h > 7) D = scaleD(D, 7 / D.h);
-      D.cornerRadiusMultiplier = 0.5;   // landing previews only: fully-rounded ends so tiny rings never look blocky
+      D.cornerRadiusMultiplier = 0.35;   // match the customiser/style-picker rounding (rx = h·0.35), not a full pill
       scrVis.innerHTML = blackPolesHTML(D);
     }));
   }
@@ -3065,6 +3122,7 @@ function initChooseStyle() {
   const palIdx  = E.palette;                        // null → native (all colors)
   const styleCards = PATTERNS.map((pat,i) => `
     <div class="flow-card" onclick="pickChooseStyle(${i})">
+      <div class="ledge-chip">${pat.ledgeCount} ${pat.ledgeCount === 1 ? 'ledge' : 'ledges'}</div>
       <div class="flow-card-visual" data-pat="${i}"></div>
       <div class="flow-card-footer style-name"><div class="flow-card-label">${pat.name}</div></div>
     </div>`).join('');
@@ -3143,7 +3201,7 @@ function applyPattern(patIdx, palIdx, recolor = false, palHexOverride = null) {
   /* record each ring's raw pattern slot index so slot mode can group rings */
   S.slotP1 = pat.p1.slice();
   S.slotP2 = pat.p2.slice();
-  S.big = new Set(pat.noLedges ? [0] : (pat.ledges ? pat.ledges : DEF_BIG));
+  S.big = new Set(pat.noLedges ? [0] : (pat.big ? [...pat.big] : (pat.ledges ? pat.ledges : DEF_BIG)));
 }
 
 function resetState() {
