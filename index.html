@@ -2908,6 +2908,11 @@ function pickChooseStyle(i)   {
    LANDING
    ══════════════════════════════════════════════════ */
 function initLanding() {
+  /* Mobile only: lock #s-land to the real visualViewport height BEFORE the cards
+     are measured below, so iOS Safari's pre-address-bar-collapse height glitch
+     can't render the landing half off-screen or mis-size the cards. No-op on
+     desktop. (Fix 1) */
+  lockLandingHeight();
   /* "Choose a style" card — cycles through style pole previews (native colors).
      Rebuilds on EVERY call (no _built guard): if the very first build happened
      while #s-land was hidden (e.g. arriving via a ?d= link, which jumps straight
@@ -2948,6 +2953,14 @@ function initLanding() {
       scrVis.innerHTML = blackPolesHTML(D);
     }));
   }
+  /* Mobile only: once the cards are laid out at the locked landing height, freeze
+     the grid at that pixel height so it can't grow when the iOS address bar hides
+     on scroll (which would push the bottom cards off-screen). Deliberately NOT
+     re-run on visualViewport resize — the grid must stay fixed at its initial
+     size. Double rAF so the grid is fully painted before we measure. (Fix 2) */
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    lockGridHeight();
+  }));
   /* Seed 'land' as the base of navHistory so leaving the landing page always
      leaves something to pop — the back gesture from any entry screen returns
      here. When navHistory is down to ['land'], a further back swipe finds it
@@ -2955,6 +2968,55 @@ function initLanding() {
   if (navHistory.length === 0 || navHistory[navHistory.length-1] !== 'land') {
     navHistory = ['land'];
   }
+}
+
+/* ══════════════════════════════════════════════════
+   MOBILE LANDING VIEWPORT LOCK (≤739px only; desktop untouched)
+   ── Fix 1: iOS Safari computes the viewport height before the address bar
+      collapses, so the landing sometimes renders with its top half cut off.
+      Pin #s-land to the *visual* viewport height (falling back to innerHeight)
+      and re-apply on every visualViewport resize (address bar show/hide).
+   ── Fix 2: freeze the card grid at its first-render height so the grid does
+      NOT grow with the address bar (which would shove the bottom cards, incl.
+      the Surprise Me button, off-screen). lockGridHeight is intentionally
+      never wired to the visualViewport resize.
+   ══════════════════════════════════════════════════ */
+function lockLandingHeight() {
+  const land = document.getElementById('s-land');
+  if (!land) return;
+  // Desktop: clear any inline sizing a prior mobile pass left, then bail.
+  if (window.innerWidth > 739) {
+    land.style.height = ''; land.style.maxHeight = ''; land.style.overflow = '';
+    return;
+  }
+  const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  land.style.height = h + 'px';
+  land.style.maxHeight = h + 'px';
+  land.style.overflow = 'hidden';
+}
+
+function lockGridHeight() {
+  const grid = document.getElementById('land-grid');
+  if (!grid) return;
+  // Desktop: clear any inline sizing a prior mobile pass left, then bail.
+  if (window.innerWidth > 739) {
+    grid.style.height = ''; grid.style.overflow = '';
+    return;
+  }
+  // Clear first so we re-measure the natural (flex) height on each landing visit,
+  // rather than re-reading a height locked on a previous visit.
+  grid.style.height = '';
+  const h = grid.getBoundingClientRect().height;
+  if (h > 0) {
+    grid.style.height = h + 'px';
+    grid.style.overflow = 'hidden';
+  }
+}
+
+/* Re-lock the landing height whenever the visual viewport changes — this fires
+   when the iOS address bar shows/hides. The grid stays fixed (see above). */
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', lockLandingHeight);
 }
 
 /* Split a palette into display rows. Drives every palette swatch in the app:
@@ -5258,6 +5320,7 @@ window._learnq.push(['track', 'Tool Opened', {
   timestamp: new Date().toISOString()
 }]);
 applyRegripMode();       // ?regrip=true → banner + Kit labels (no-op otherwise)
+lockLandingHeight();     // mobile: pin #s-land to the visual viewport before first paint (Fix 1)
 initLanding();
 decodeBasket();          // restore a full basket from a ?basket= link (opens the cart)
 checkURL();
