@@ -5313,6 +5313,25 @@ function maybeShowMobileWarning() {
   }
 }
 
+/* ══════════════════════════════════════════════════
+   PORTRAIT LOCK — phones only. Overlay a "rotate to portrait" screen whenever a
+   phone is held in landscape. We key off the SHORT side (innerHeight in
+   landscape): phones are < ~600px tall in landscape, while tablets (~768px+) and
+   desktops are taller, so neither is ever blocked. A width check would misfire —
+   it'd block small/narrow desktops (e.g. 1024×768) that get the working desktop
+   layout, and treat large phones inconsistently once their landscape width tops
+   the app's 740px breakpoint.
+   ══════════════════════════════════════════════════ */
+function checkOrientation() {
+  const msg = document.getElementById('rotate-msg');
+  if (!msg) return;
+  const isPhoneLandscape = window.innerWidth > window.innerHeight
+    && window.innerHeight < 600;
+  msg.style.display = isPhoneLandscape ? 'flex' : 'none';
+}
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', checkOrientation);
+
 /* INIT */
 window._learnq = window._learnq || [];
 window._learnq.push(['track', 'Tool Opened', {
@@ -5327,6 +5346,7 @@ checkURL();
 refreshYourPolesBtns();  // reflect a pre-existing sessionStorage cart on first paint
 maybeShowMobileWarning();
 setPolesStageHeight();   // no-op unless the customiser is the active screen on load
+checkOrientation();      // phones: show the rotate-to-portrait overlay if in landscape
 </script>
 
 <div id="ov-inventory-warning" class="ov-backdrop"
@@ -5360,6 +5380,33 @@ setPolesStageHeight();   // no-op unless the customiser is the active screen on 
         Redesign my poles
       </button>
     </div>
+  </div>
+</div>
+
+<!-- Portrait lock overlay — shown by checkOrientation() only when a phone is in
+     landscape. Covers everything (z-index above all modals). -->
+<div id="rotate-msg" style="
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: #fff;
+  z-index: 99999;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  text-align: center;
+  padding: 32px;
+">
+  <div style="font-size: 2rem; margin-bottom: 16px;">↺</div>
+  <div style="font-size: 1.1rem; font-weight: 700;
+    margin-bottom: 8px; text-transform: uppercase;
+    letter-spacing: 0.05em;">
+    Please rotate your device
+  </div>
+  <div style="font-size: 0.85rem; color: #888;
+    line-height: 1.5;">
+    This tool works best in portrait mode.
   </div>
 </div>
 </body>
