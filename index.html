@@ -4646,12 +4646,17 @@ function checkInventoryForPairs(pairs) {
   const low = new Set();
   const out = new Set();
 
-  // Define ledge positions
-  const LEDGE_POSITIONS = new Set([0,10,19,28,34,40]);
   // Position 0 is top cap
   const CAP_POSITION = 0;
 
   pairs.forEach(pair => {
+    // Ledge positions come from the pair's own design (its saved `big` set), the
+    // same way poleInventoryString does — falling back to the default layout for
+    // links that don't carry one. A hardcoded set would mislabel any design with
+    // custom ledge positions.
+    const d = decodeDesignURL(pair.designUrl);
+    const ledgePositions = (d && d.big) ? new Set(d.big) : new Set(DEF_BIG);
+
     // Check each pole
     [pair.p1Colors, pair.p2Colors].forEach(poleColors => {
       (poleColors || []).forEach((hex, idx) => {
@@ -4664,7 +4669,7 @@ function checkInventoryForPairs(pairs) {
         if (idx === CAP_POSITION) {
           // Top cap
           partStatus = status.caps;
-        } else if (LEDGE_POSITIONS.has(idx)) {
+        } else if (ledgePositions.has(idx)) {
           // Ledge disc
           partStatus = status.ledges;
         } else {
@@ -4672,7 +4677,7 @@ function checkInventoryForPairs(pairs) {
           partStatus = status.rings;
         }
 
-        const partLabel = idx === CAP_POSITION ? 'caps' : LEDGE_POSITIONS.has(idx) ? 'ledges' : 'rings';
+        const partLabel = idx === CAP_POSITION ? 'caps' : ledgePositions.has(idx) ? 'ledges' : 'rings';
 
         if (partStatus === 'OUT') {
           out.add(`${colorName} (${partLabel})`);
