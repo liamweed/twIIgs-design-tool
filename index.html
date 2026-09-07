@@ -1954,7 +1954,17 @@ body {
   <div class="cart-actions" id="cart-actions">
     <button class="btn ghost cart-add-mobile" onclick="cartAddAnother()">Add another pair</button>
     <button class="btn ghost cart-save" onclick="openBasketSaveOptions()">Save your designs</button>
-    <button class="btn accent cart-checkout" onclick="cartCheckout(this)">Continue to checkout →</button>
+    <button class="btn accent cart-checkout" onclick="cartCheckout(this)" style="flex-direction: column; white-space: normal;">Continue to checkout →<p style="
+  display: block;
+  width: 100%;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.55rem;
+  color: var(--lite);
+  text-align: center;
+  margin: 2px 0 0;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+">Ships within 2 weeks of order</p></button>
   </div>
 </div>
 
