@@ -5027,8 +5027,7 @@ async function basketCopyLink() {
 
 /* Option B — capture an email and send the basket link via Klaviyo. */
 function basketEmailLink() {
-  const basketUrl = buildBasketUrl();
-  console.log('[basket save] "Email me the link" clicked — basketUrl:', basketUrl);
+  buildBasketUrl();
   closeBasketSaveOptions();
   // Open the save overlay in basket mode.
   saveMode = 'basket';
@@ -5111,7 +5110,6 @@ async function submitSave() {
   if (saveMode === 'basket') {
     const basketUrl = lastBasketUrl || encodeBasket();
     const pairCount = getCart().length;
-    console.log('[basket save] submit — basketUrl:', basketUrl, 'pairs:', pairCount);
 
     // Identify the now-known profile with the basket URL.
     window._learnq.push(['identify', {
@@ -5124,7 +5122,6 @@ async function submitSave() {
       '$email': email,
       'design_url': basketUrl
     }]);
-    console.log('[basket save] Klaviyo "Design Saved" track fired');
     // Also record the basket-specific metric for analytics (no flow attached).
     window._learnq.push(['track', 'Basket Saved', {
       basket_url: basketUrl,
