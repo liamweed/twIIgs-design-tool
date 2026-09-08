@@ -5027,7 +5027,8 @@ async function basketCopyLink() {
 
 /* Option B — capture an email and send the basket link via Klaviyo. */
 function basketEmailLink() {
-  buildBasketUrl();
+  const basketUrl = buildBasketUrl();
+  console.log('[basket save] "Email me the link" clicked — basketUrl:', basketUrl);
   closeBasketSaveOptions();
   // Open the save overlay in basket mode.
   saveMode = 'basket';
@@ -5110,19 +5111,27 @@ async function submitSave() {
   if (saveMode === 'basket') {
     const basketUrl = lastBasketUrl || encodeBasket();
     const pairCount = getCart().length;
+    console.log('[basket save] submit — basketUrl:', basketUrl, 'pairs:', pairCount);
 
     // Identify the now-known profile with the basket URL.
     window._learnq.push(['identify', {
       '$email': email,
-      'Basket URL': basketUrl
+      'Design URL': basketUrl
     }]);
-    // Track the Basket Saved event.
+    // Fire the SAME "Design Saved" metric the Klaviyo flow triggers on, so the
+    // basket email actually sends. design_url carries the basket link.
+    window._learnq.push(['track', 'Design Saved', {
+      '$email': email,
+      'design_url': basketUrl
+    }]);
+    console.log('[basket save] Klaviyo "Design Saved" track fired');
+    // Also record the basket-specific metric for analytics (no flow attached).
     window._learnq.push(['track', 'Basket Saved', {
       basket_url: basketUrl,
       pair_count: pairCount
     }]);
     // Add to the Design Saves list with the basket URL as a property.
-    await klaviyoSubscribe(email, 'UkMqYU', { basket_url: basketUrl });
+    await klaviyoSubscribe(email, 'UkMqYU', { design_url: basketUrl });
 
     if (marketingOptIn) {
       await klaviyoSubscribe(email, 'UcWEqh', {});
@@ -5165,10 +5174,10 @@ function showSavePopup(mode) {
   const sub   = document.getElementById('save-popup-sub');
   if (mode === 'basket') {
     if (title) title.textContent = 'Check your email for your basket link!';
-    if (sub)   sub.textContent   = 'We just sent you a link to your full basket.';
+    if (sub)   sub.textContent   = 'We just sent you a link to your full basket. It may take a minute or two to land in your inbox.';
   } else {
     if (title) title.textContent = 'Your design is saved!';
-    if (sub)   sub.textContent   = 'Check your inbox for the link.';
+    if (sub)   sub.textContent   = 'Check your inbox for the link. It may take a minute or two to arrive.';
   }
   document.getElementById('save-popup').classList.add('open');
   clearTimeout(savePopupTimer);
