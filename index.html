@@ -178,6 +178,57 @@ body {
 .btn.sm     { min-height: 36px; padding: 0 12px; font-size: 0.76rem; }
 .btn.lg     { min-height: 52px; padding: 0 28px; font-size: 0.95rem; }
 
+/* ── "← Back to Colors" buttons — teal pulsing outline (toolbar + ledge panel) ── */
+@keyframes tealPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0,121,142,0.4); }
+  70%  { box-shadow: 0 0 0 6px rgba(0,121,142,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,121,142,0); }
+}
+.back-to-colors-btn {
+  animation: tealPulse 1.8s ease-in-out infinite;
+  border: 2px solid #00798e;
+  color: #00798e;
+  background: #ffffff;
+}
+/* Hold the teal outline through hover/active on the toolbar (.btn.tool) instance,
+   which would otherwise invert to an ink/accent fill. */
+.btn.back-to-colors-btn,
+.btn.back-to-colors-btn:hover,
+.btn.back-to-colors-btn:active {
+  background: #ffffff;
+  color: #00798e;
+  border-color: #00798e;
+  box-shadow: none;
+}
+/* Ledge-panel back button: same radius/size as other .btn buttons */
+.ledge-back-btn { border-radius: 5px; }
+/* Reset Ledges lives in the main toolbar only for mobile ledge-mode; hidden otherwise */
+.scratch-tools.main-tools .ledge-only { display: none; }
+
+@media (max-width: 739px) {
+  /* Item 1: in Adjust-Ledges mode the toolbar collapses to exactly three buttons —
+     Undo | Reset Ledges | ← Back to Colors (Back to Colors twice as wide). */
+  .scratch-tools.main-tools.ledge-mode {
+    grid-template-columns: 1fr 1fr 2fr;
+    overflow: visible;                 /* item 3: don't clip the pulse glow */
+  }
+  .scratch-tools.main-tools.ledge-mode .non-ledge { display: none; }
+  .scratch-tools.main-tools.ledge-mode .ledge-only { display: inline-flex; }
+  .scratch-tools.main-tools.ledge-mode #undo-btn          { order: 1; }
+  .scratch-tools.main-tools.ledge-mode .ledge-only        { order: 2; }
+  .scratch-tools.main-tools.ledge-mode #adjust-ledges-btn { order: 3; }
+  .scratch-tools.main-tools.ledge-mode .btn.tool { font-size: 0.55rem; }
+
+  /* Item 2: full-width, easy-tap back button in the ledge panel, clearly
+     separated from the "Learn more about spacing" link above it. */
+  .ledge-back-btn {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 12px;
+    justify-content: center;
+  }
+}
+
 /* ══════════════════════════════════════════════
    SHARED CARD GRID — used on landing + all entry screens
    ══════════════════════════════════════════════ */
@@ -1900,10 +1951,11 @@ body {
           <!-- Main toolbar — always visible, all in one row (More tools toggle inline) -->
           <div class="scratch-tools main-tools">
             <button class="btn tool ghost" id="undo-btn" onclick="doUndo()" disabled>↺ Undo</button>
-            <button class="btn tool ghost" onclick="doReset()">Reset</button>
-            <button class="btn tool ghost" id="all-one-btn" onclick="doAllOne()">● All One</button>
+            <button class="btn tool ghost non-ledge" onclick="doReset()">Reset</button>
+            <button class="btn tool ghost non-ledge" id="all-one-btn" onclick="doAllOne()">● All One</button>
+            <button class="btn tool ghost ledge-only" onclick="doResetLedges()">Reset Ledges</button>
             <button class="btn tool ghost adjust-ledges-toggle" id="adjust-ledges-btn" onclick="doAdjustLedges()">▭ Adjust Ledges</button>
-            <button class="btn tool ghost more-tools-toggle" id="more-tools-btn" onclick="toggleMoreTools()">More tools ▾</button>
+            <button class="btn tool ghost non-ledge more-tools-toggle" id="more-tools-btn" onclick="toggleMoreTools()">More tools ▾</button>
           </div>
 
           <!-- Secondary toolbar — hidden until "More tools" tapped -->
@@ -3955,13 +4007,17 @@ function turnOffAdjustLedges() {
 function updateAdjustLedgesBtn() {
   const b = document.getElementById('adjust-ledges-btn');
   if (b) {
-    b.classList.toggle('on', S.adjustLedgesMode);
-    /* Abbreviate on mobile so the label never gets clipped in the 5-col toolbar */
+    /* In ledge mode the button becomes "← Back to Colors" — teal pulsing outline
+       instead of a solid accent fill. */
+    b.classList.toggle('back-to-colors-btn', S.adjustLedgesMode);
     const m = isMobile();
     b.textContent = S.adjustLedgesMode
-      ? (m ? '← Colors' : '← Back to Colors')
+      ? '← Back to Colors'
       : (m ? '▭ Ledges' : '▭ Adjust Ledges');
   }
+  /* Toggle the 3-button (Undo | Reset Ledges | Back to Colors) mobile toolbar layout */
+  const bar = document.querySelector('.scratch-tools.main-tools');
+  if (bar) bar.classList.toggle('ledge-mode', S.adjustLedgesMode);
 }
 /* Show the shape brush panel (and hide the picker) while ON; restore everything when OFF */
 function applyEditPanelVisibility() {
@@ -4003,7 +4059,8 @@ function renderLedgeBrush() {
       </button>
     </div>
     <div class="ledge-brush-count" id="ledge-brush-count">Ledges <span class="lc-num">${count}</span> / ${MAX_LEDGE}</div>
-    <button class="ledge-spacing-learn" onclick="openSpacingPopup()">Learn more about spacing</button>`;
+    <button class="ledge-spacing-learn" onclick="openSpacingPopup()">Learn more about spacing</button>
+    <button class="btn back-to-colors-btn ledge-back-btn" onclick="doAdjustLedges()">← Back to Colors</button>`;
 }
 function selectLedgeBrush(shape) {
   S.ledgeBrush = shape;
